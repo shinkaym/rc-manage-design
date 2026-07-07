@@ -1,0 +1,21 @@
+export const darkTheme = {
+  colors: {
+    primary: '#FFB067',
+    primarySoft: '#5F3B1A',
+    secondary: '#6D3600',
+    tertiary: '#F8FAFC',
+    background: '#111315',
+    surface: '#191C1D',
+    surfaceAlt: '#232628',
+    border: '#3A3F42',
+    borderAlt: '#2A2E31',
+    shadow: '#00000040',
+    text: '#F8FAFC',
+    textPrimary: '#FFB067',
+    textSecondary: '#F8FAFC',
+    textTertiary: '#D7C1AF',
+    textTertiarySoft: '#FFDCC6',
+    textHint: '#94A3B8',
+    danger: '#F87171',
+  },
+} as const;
