@@ -60,6 +60,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       padding: spacing.xxs,
       borderRadius: radius.pill,
       borderCurve: 'continuous',
+      overflow: 'hidden',
       borderWidth: 1,
       borderColor: theme.colors.borderAlt,
       backgroundColor: theme.colors.surface,
@@ -67,12 +68,14 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
     buttonPressable: {
       flex: 1,
       borderRadius: radius.pill,
+      overflow: 'hidden',
     },
     button: {
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.xs,
       borderRadius: radius.pill,
       borderCurve: 'continuous',
+      overflow: 'hidden',
       alignItems: 'center',
       justifyContent: 'center',
     },

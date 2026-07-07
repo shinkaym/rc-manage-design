@@ -125,6 +125,10 @@ export function LineChart({
         contentContainerStyle={styles.scrollContent}>
         <Svg width={svgWidth} height={svgHeight}>
           {yAxisValues.map((value) => {
+            if (value === 0 || value === resolvedMaxY) {
+              return null;
+            }
+
             const y = chartLayout.plotTopPadding + (1 - value / resolvedMaxY) * plotHeight;
 
             return (
@@ -135,7 +139,8 @@ export function LineChart({
                   x2={chartLayout.axisLabelWidth + minimumPlotWidth}
                   y2={y}
                   stroke={theme.colors.chartGrid}
-                  strokeWidth={1}
+                  strokeWidth={1.25}
+                  strokeDasharray="4 4"
                 />
                 <SvgText
                   x={chartLayout.axisLabelWidth - 6}

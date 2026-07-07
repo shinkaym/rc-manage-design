@@ -129,23 +129,25 @@ export function MainShell({ children }: MainShellProps) {
 
               <MainBottomNav currentPathname={pathname} onNavigate={navigateTo} />
 
-              <Pressable
-                onPress={() => navigateTo(shellNavRoutes[2].href)}
-                style={styles.scanFabPressable}>
-                {({ pressed }) => (
-                  <View style={[styles.scanFabWrapper, pressed ? styles.scanFabPressed : null]}>
-                    <View style={styles.scanFab}>
-                      <HugeiconsIcon
-                        icon={shellNavRoutes[2].icon}
-                        color="#FFFFFF"
-                        size={30}
-                        strokeWidth={2.1}
-                      />
+              <View pointerEvents="box-none" style={styles.scanFabOverlay}>
+                <Pressable
+                  onPress={() => navigateTo(shellNavRoutes[2].href)}
+                  style={styles.scanFabPressable}>
+                  {({ pressed }) => (
+                    <View style={[styles.scanFabWrapper, pressed ? styles.scanFabPressed : null]}>
+                      <View style={styles.scanFab}>
+                        <HugeiconsIcon
+                          icon={shellNavRoutes[2].icon}
+                          color="#FFFFFF"
+                          size={30}
+                          strokeWidth={2.1}
+                        />
+                      </View>
+                      <Text style={styles.scanFabLabel}>Scan Image</Text>
                     </View>
-                    <Text style={styles.scanFabLabel}>Scan Image</Text>
-                  </View>
-                )}
-              </Pressable>
+                  )}
+                </Pressable>
+              </View>
             </View>
           </View>
         </Animated.View>
@@ -214,12 +216,15 @@ function createStyles(
       flex: 1,
       backgroundColor: theme.colors.surface,
     },
-    scanFabPressable: {
+    scanFabOverlay: {
       position: 'absolute',
       bottom: fabBottom,
       left: 0,
       right: 0,
       alignItems: 'center',
+    },
+    scanFabPressable: {
+      borderRadius: radius.pill,
     },
     scanFabWrapper: {
       alignItems: 'center',

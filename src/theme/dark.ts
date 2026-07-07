@@ -16,6 +16,7 @@ export const darkTheme = {
     textTertiary: '#D7C1AF',
     textTertiarySoft: '#FFDCC6',
     textHint: '#94A3B8',
+    chartGrid: '#3A4650',
     danger: '#F87171',
   },
 } as const;
