@@ -1,5 +1,5 @@
-import { ScanPlaceholderScreen } from '@/features/placeholders/scan-placeholder-screen';
+import { ScanScreen } from '@/features/scan/scan-screen';
 
 export default function ScanRoute() {
-  return <ScanPlaceholderScreen />;
+  return <ScanScreen />;
 }
