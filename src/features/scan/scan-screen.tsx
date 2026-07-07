@@ -25,12 +25,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import {
   ActivityIndicator,
+  type GestureResponderEvent,
   LayoutChangeEvent,
   Linking,
-  PanResponder,
   Pressable,
   StyleSheet,
   Text,
+  type ViewProps,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -68,6 +69,7 @@ type CropRect = {
 type ImageFrame = CropRect;
 
 type CropHandlePosition = 'bottomLeft' | 'bottomRight' | 'topLeft' | 'topRight';
+type CropEdgePosition = 'bottom' | 'left' | 'right' | 'top';
 
 export function ScanScreen() {
   const router = useRouter();
@@ -78,6 +80,7 @@ export function ScanScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [cameraFacing, setCameraFacing] = useState<'back' | 'front'>('back');
   const [cropRect, setCropRect] = useState<CropRect | null>(null);
+  const [cropDraftImage, setCropDraftImage] = useState<PreviewImageState | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isFlashEnabled, setIsFlashEnabled] = useState(false);
@@ -93,7 +96,8 @@ export function ScanScreen() {
   const hasCameraPermission = cameraPermission?.granted === true;
   const shouldShowCameraOverlay =
     mode === 'capture' && (!hasCameraPermission || !isCameraReady || isRetryingCamera);
-  const imageFrame = previewImage ? getContainedFrame(stageLayout, previewImage) : null;
+  const activeImage = mode === 'crop' ? cropDraftImage : previewImage;
+  const imageFrame = activeImage ? getContainedFrame(stageLayout, activeImage) : null;
 
   useEffect(() => {
     requestCameraPermission().catch(() => {
@@ -131,6 +135,7 @@ export function ScanScreen() {
 
   function handleClosePreview() {
     setCropRect(null);
+    setCropDraftImage(null);
     setIsCameraReady(false);
     setMode('capture');
     setPreviewImage(null);
@@ -195,6 +200,7 @@ export function ScanScreen() {
 
       const selectedAsset = result.assets[0];
       setCropRect(null);
+      setCropDraftImage(null);
       setMode('preview');
       setPreviewImage({
         uri: selectedAsset.uri,
@@ -224,6 +230,7 @@ export function ScanScreen() {
       }
 
       setCropRect(null);
+      setCropDraftImage(null);
       setMode('preview');
       setPreviewImage({
         uri: capturedPhoto.uri,
@@ -255,20 +262,25 @@ export function ScanScreen() {
       return;
     }
 
+    setCropDraftImage(previewImage);
     setCropRect(null);
     setMode('crop');
   }
 
-  async function updatePreviewImage(transform: (uri: string) => Promise<PreviewImageState>) {
-    if (!previewImage || isWorking) {
+  async function transformImage(
+    sourceImage: PreviewImageState | null,
+    onApplyImage: (image: PreviewImageState) => void,
+    transform: (uri: string) => Promise<PreviewImageState>
+  ) {
+    if (!sourceImage || isWorking) {
       return;
     }
 
     setIsWorking(true);
 
     try {
-      const nextImage = await transform(previewImage.uri);
-      setPreviewImage(nextImage);
+      const nextImage = await transform(sourceImage.uri);
+      onApplyImage(nextImage);
     } catch {
       showMessage('Unable to update the image right now.');
     } finally {
@@ -278,9 +290,15 @@ export function ScanScreen() {
 
   async function handleRotatePreviewImage() {
     const nextMode = mode === 'crop' ? 'crop' : 'preview';
-    setCropRect(null);
+    const sourceImage = nextMode === 'crop' ? cropDraftImage : previewImage;
 
-    await updatePreviewImage(async (imageUri) => {
+    await transformImage(sourceImage, (nextImage) => {
+      if (nextMode === 'crop') {
+        setCropDraftImage(nextImage);
+      } else {
+        setPreviewImage(nextImage);
+      }
+    }, async (imageUri) => {
       const context = ImageManipulator.manipulate(imageUri);
       context.rotate(90);
       const renderedImage = await context.renderAsync();
@@ -296,20 +314,24 @@ export function ScanScreen() {
       };
     });
 
+    if (nextMode === 'crop') {
+      setCropRect(null);
+    }
+
     setMode(nextMode);
   }
 
   async function handleSaveCrop() {
-    if (!previewImage || !cropRect || !imageFrame) {
+    if (!cropDraftImage || !cropRect || !imageFrame) {
       return;
     }
 
-    const cropInPixels = mapCropRectToImagePixels(cropRect, imageFrame, previewImage);
+    const cropInPixels = mapCropRectToImagePixels(cropRect, imageFrame, cropDraftImage);
 
     setIsWorking(true);
 
     try {
-      const context = ImageManipulator.manipulate(previewImage.uri);
+      const context = ImageManipulator.manipulate(cropDraftImage.uri);
       context.crop(cropInPixels);
       const renderedImage = await context.renderAsync();
       const savedImage = await renderedImage.saveAsync({
@@ -322,6 +344,7 @@ export function ScanScreen() {
         width: savedImage.width,
         height: savedImage.height,
       });
+      setCropDraftImage(null);
       setCropRect(null);
       setMode('preview');
     } catch {
@@ -332,6 +355,7 @@ export function ScanScreen() {
   }
 
   function handleCancelCrop() {
+    setCropDraftImage(null);
     setCropRect(null);
     setMode('preview');
   }
@@ -413,9 +437,9 @@ export function ScanScreen() {
           ) : null}
 
           <View style={styles.centerStage} onLayout={handleStageLayout}>
-            {previewImage ? (
+            {activeImage ? (
               <Image
-                source={{ uri: previewImage.uri }}
+                source={{ uri: activeImage.uri }}
                 style={styles.previewImage}
                 contentFit="contain"
               />
@@ -1006,46 +1030,69 @@ function CropOverlay({
 }: CropOverlayProps) {
   const theme = useAppTheme();
   const styles = createStyles(theme, 0, 0);
-  const dragRectRef = useRef(cropRect);
+  const dragStartRef = useRef<TouchGestureState | null>(null);
+  const topLeftStartRef = useRef<TouchGestureState | null>(null);
+  const topRightStartRef = useRef<TouchGestureState | null>(null);
+  const bottomLeftStartRef = useRef<TouchGestureState | null>(null);
+  const bottomRightStartRef = useRef<TouchGestureState | null>(null);
 
-  const moveResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: () => true,
-    onStartShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => {
-      dragRectRef.current = cropRect;
-    },
-    onPanResponderMove: (_, gestureState) => {
-      onChangeRect(moveCropRect(dragRectRef.current, imageFrame, gestureState.dx, gestureState.dy));
-    },
-  });
-
-  const topLeftResponder = createHandleResponder(
+  const moveResponder = createTouchResponder(
+    dragStartRef,
     cropRect,
-    dragRectRef,
-    imageFrame,
     onChangeRect,
-    'topLeft'
+    (startRect, dx, dy) => moveCropRect(startRect, imageFrame, dx, dy)
   );
-  const topRightResponder = createHandleResponder(
+  const topLeftResponder = createTouchResponder(
+    topLeftStartRef,
     cropRect,
-    dragRectRef,
-    imageFrame,
     onChangeRect,
-    'topRight'
+    (startRect, dx, dy) => resizeCropRect(startRect, imageFrame, dx, dy, 'topLeft')
   );
-  const bottomLeftResponder = createHandleResponder(
+  const topRightResponder = createTouchResponder(
+    topRightStartRef,
     cropRect,
-    dragRectRef,
-    imageFrame,
     onChangeRect,
-    'bottomLeft'
+    (startRect, dx, dy) => resizeCropRect(startRect, imageFrame, dx, dy, 'topRight')
   );
-  const bottomRightResponder = createHandleResponder(
+  const bottomLeftResponder = createTouchResponder(
+    bottomLeftStartRef,
     cropRect,
-    dragRectRef,
-    imageFrame,
     onChangeRect,
-    'bottomRight'
+    (startRect, dx, dy) => resizeCropRect(startRect, imageFrame, dx, dy, 'bottomLeft')
+  );
+  const bottomRightResponder = createTouchResponder(
+    bottomRightStartRef,
+    cropRect,
+    onChangeRect,
+    (startRect, dx, dy) => resizeCropRect(startRect, imageFrame, dx, dy, 'bottomRight')
+  );
+  const topEdgeStartRef = useRef<TouchGestureState | null>(null);
+  const rightEdgeStartRef = useRef<TouchGestureState | null>(null);
+  const bottomEdgeStartRef = useRef<TouchGestureState | null>(null);
+  const leftEdgeStartRef = useRef<TouchGestureState | null>(null);
+  const topEdgeResponder = createTouchResponder(
+    topEdgeStartRef,
+    cropRect,
+    onChangeRect,
+    (startRect, dx, dy) => resizeCropRect(startRect, imageFrame, dx, dy, 'top')
+  );
+  const rightEdgeResponder = createTouchResponder(
+    rightEdgeStartRef,
+    cropRect,
+    onChangeRect,
+    (startRect, dx, dy) => resizeCropRect(startRect, imageFrame, dx, dy, 'right')
+  );
+  const bottomEdgeResponder = createTouchResponder(
+    bottomEdgeStartRef,
+    cropRect,
+    onChangeRect,
+    (startRect, dx, dy) => resizeCropRect(startRect, imageFrame, dx, dy, 'bottom')
+  );
+  const leftEdgeResponder = createTouchResponder(
+    leftEdgeStartRef,
+    cropRect,
+    onChangeRect,
+    (startRect, dx, dy) => resizeCropRect(startRect, imageFrame, dx, dy, 'left')
   );
 
   return (
@@ -1108,14 +1155,22 @@ function CropOverlay({
             width: cropRect.width,
             height: cropRect.height,
           },
-        ]}
-        {...moveResponder.panHandlers}>
+        ]}>
         <View style={styles.cropRectBorder} />
+        <View pointerEvents="none" style={styles.cropGridVerticalLeft} />
+        <View pointerEvents="none" style={styles.cropGridVerticalRight} />
+        <View pointerEvents="none" style={styles.cropGridHorizontalTop} />
+        <View pointerEvents="none" style={styles.cropGridHorizontalBottom} />
+        <View style={styles.cropMoveSurface} {...moveResponder} />
+        <CropEdge position="top" responderProps={topEdgeResponder} />
+        <CropEdge position="right" responderProps={rightEdgeResponder} />
+        <CropEdge position="bottom" responderProps={bottomEdgeResponder} />
+        <CropEdge position="left" responderProps={leftEdgeResponder} />
 
-        <CropHandle position="topLeft" {...topLeftResponder.panHandlers} />
-        <CropHandle position="topRight" {...topRightResponder.panHandlers} />
-        <CropHandle position="bottomLeft" {...bottomLeftResponder.panHandlers} />
-        <CropHandle position="bottomRight" {...bottomRightResponder.panHandlers} />
+        <CropHandle position="topLeft" responderProps={topLeftResponder} />
+        <CropHandle position="topRight" responderProps={topRightResponder} />
+        <CropHandle position="bottomLeft" responderProps={bottomLeftResponder} />
+        <CropHandle position="bottomRight" responderProps={bottomRightResponder} />
       </View>
     </View>
   );
@@ -1123,9 +1178,10 @@ function CropOverlay({
 
 type CropHandleProps = {
   position: CropHandlePosition;
-} & ReturnType<typeof PanResponder.create>['panHandlers'];
+  responderProps: ViewResponderProps;
+};
 
-function CropHandle({ position, ...panHandlers }: CropHandleProps) {
+function CropHandle({ position, responderProps }: CropHandleProps) {
   const styles = createStyles(useAppTheme(), 0, 0);
   const isTop = position.startsWith('top');
   const isLeft = position.endsWith('Left');
@@ -1137,7 +1193,7 @@ function CropHandle({ position, ...panHandlers }: CropHandleProps) {
         isTop ? styles.cropHandleTop : styles.cropHandleBottom,
         isLeft ? styles.cropHandleLeft : styles.cropHandleRight,
       ]}
-      {...panHandlers}>
+      {...responderProps}>
       <View
         style={[
           styles.cropHandleHorizontal,
@@ -1156,25 +1212,82 @@ function CropHandle({ position, ...panHandlers }: CropHandleProps) {
   );
 }
 
-function createHandleResponder(
+type CropEdgeProps = {
+  position: CropEdgePosition;
+  responderProps: ViewResponderProps;
+};
+
+function CropEdge({ position, responderProps }: CropEdgeProps) {
+  const styles = createStyles(useAppTheme(), 0, 0);
+
+  return (
+    <View
+      style={[
+        styles.cropEdgeTouchArea,
+        position === 'top' ? styles.cropEdgeTop : null,
+        position === 'right' ? styles.cropEdgeRight : null,
+        position === 'bottom' ? styles.cropEdgeBottom : null,
+        position === 'left' ? styles.cropEdgeLeft : null,
+      ]}
+      {...responderProps}
+    />
+  );
+}
+
+type TouchGestureState = {
+  pageX: number;
+  pageY: number;
+  rect: CropRect;
+};
+
+type ViewResponderProps = Pick<
+  ViewProps,
+  | 'onMoveShouldSetResponder'
+  | 'onResponderGrant'
+  | 'onResponderMove'
+  | 'onResponderRelease'
+  | 'onResponderTerminate'
+  | 'onStartShouldSetResponder'
+>;
+
+function createTouchResponder(
+  startRef: MutableRefObject<TouchGestureState | null>,
   cropRect: CropRect,
-  dragRectRef: MutableRefObject<CropRect>,
-  imageFrame: ImageFrame,
   onChangeRect: (rect: CropRect) => void,
-  position: CropHandlePosition
-) {
-  return PanResponder.create({
-    onMoveShouldSetPanResponder: () => true,
-    onStartShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => {
-      dragRectRef.current = cropRect;
-    },
-    onPanResponderMove: (_, gestureState) => {
-      onChangeRect(
-        resizeCropRect(dragRectRef.current, imageFrame, gestureState.dx, gestureState.dy, position)
-      );
-    },
-  });
+  transformRect: (startRect: CropRect, dx: number, dy: number) => CropRect
+): ViewResponderProps {
+  function beginGesture(event: GestureResponderEvent) {
+    startRef.current = {
+      pageX: event.nativeEvent.pageX,
+      pageY: event.nativeEvent.pageY,
+      rect: cropRect,
+    };
+  }
+
+  function moveGesture(event: GestureResponderEvent) {
+    const startState = startRef.current;
+
+    if (!startState) {
+      return;
+    }
+
+    const dx = event.nativeEvent.pageX - startState.pageX;
+    const dy = event.nativeEvent.pageY - startState.pageY;
+    onChangeRect(transformRect(startState.rect, dx, dy));
+  }
+
+  function endGesture() {
+    startRef.current = null;
+  }
+
+  return {
+    onStartShouldSetResponder: () => true,
+    onMoveShouldSetResponder: () => true,
+    onResponderGrant: beginGesture,
+    onResponderMove: moveGesture,
+    onResponderRelease: endGesture,
+    onResponderTerminate: endGesture,
+  };
 }
 
 function getContainedFrame(
@@ -1206,19 +1319,11 @@ function getContainedFrame(
 }
 
 function createDefaultCropRect(imageFrame: ImageFrame): CropRect {
-  const horizontalInset = Math.min(18, imageFrame.width * 0.06);
-  const verticalInset = Math.min(22, imageFrame.height * 0.06);
-  const width = Math.min(Math.max(imageFrame.width - horizontalInset * 2, minCropSize), imageFrame.width);
-  const height = Math.min(
-    Math.max(imageFrame.height - verticalInset * 2, minCropSize),
-    imageFrame.height
-  );
-
   return {
-    x: imageFrame.x + (imageFrame.width - width) / 2,
-    y: imageFrame.y + (imageFrame.height - height) / 2,
-    width,
-    height,
+    x: imageFrame.x,
+    y: imageFrame.y,
+    width: imageFrame.width,
+    height: imageFrame.height,
   };
 }
 
@@ -1238,7 +1343,7 @@ function resizeCropRect(
   imageFrame: ImageFrame,
   dx: number,
   dy: number,
-  position: CropHandlePosition
+  position: CropHandlePosition | CropEdgePosition
 ): CropRect {
   const rightEdge = cropRect.x + cropRect.width;
   const bottomEdge = cropRect.y + cropRect.height;
@@ -1282,6 +1387,54 @@ function resizeCropRect(
       y: cropRect.y,
       width: rightEdge - nextX,
       height: nextBottom - cropRect.y,
+    };
+  }
+
+  if (position === 'top') {
+    const nextY = clamp(cropRect.y + dy, imageFrame.y, bottomEdge - minHeight);
+
+    return {
+      x: cropRect.x,
+      y: nextY,
+      width: cropRect.width,
+      height: bottomEdge - nextY,
+    };
+  }
+
+  if (position === 'right') {
+    const nextRight = clamp(rightEdge + dx, cropRect.x + minWidth, imageFrame.x + imageFrame.width);
+
+    return {
+      x: cropRect.x,
+      y: cropRect.y,
+      width: nextRight - cropRect.x,
+      height: cropRect.height,
+    };
+  }
+
+  if (position === 'bottom') {
+    const nextBottom = clamp(
+      bottomEdge + dy,
+      cropRect.y + minHeight,
+      imageFrame.y + imageFrame.height
+    );
+
+    return {
+      x: cropRect.x,
+      y: cropRect.y,
+      width: cropRect.width,
+      height: nextBottom - cropRect.y,
+    };
+  }
+
+  if (position === 'left') {
+    const nextX = clamp(cropRect.x + dx, imageFrame.x, rightEdge - minWidth);
+
+    return {
+      x: nextX,
+      y: cropRect.y,
+      width: rightEdge - nextX,
+      height: cropRect.height,
     };
   }
 
@@ -1696,7 +1849,6 @@ function createStyles(
     },
     cropRect: {
       position: 'absolute',
-      borderRadius: radius.sm,
     },
     cropRectBorder: {
       position: 'absolute',
@@ -1704,64 +1856,133 @@ function createStyles(
       right: 0,
       bottom: 0,
       left: 0,
-      borderWidth: 2,
+      borderWidth: 1.5,
       borderColor: '#FFFFFF',
-      borderRadius: radius.sm,
+    },
+    cropGridVerticalLeft: {
+      position: 'absolute',
+      top: 1,
+      bottom: 1,
+      left: '33.333%',
+      width: 1,
+      marginLeft: -0.5,
+      backgroundColor: 'rgba(255, 255, 255, 0.78)',
+    },
+    cropGridVerticalRight: {
+      position: 'absolute',
+      top: 1,
+      bottom: 1,
+      left: '66.666%',
+      width: 1,
+      marginLeft: -0.5,
+      backgroundColor: 'rgba(255, 255, 255, 0.78)',
+    },
+    cropGridHorizontalTop: {
+      position: 'absolute',
+      top: '33.333%',
+      right: 1,
+      left: 1,
+      height: 1,
+      marginTop: -0.5,
+      backgroundColor: 'rgba(255, 255, 255, 0.78)',
+    },
+    cropGridHorizontalBottom: {
+      position: 'absolute',
+      top: '66.666%',
+      right: 1,
+      left: 1,
+      height: 1,
+      marginTop: -0.5,
+      backgroundColor: 'rgba(255, 255, 255, 0.78)',
+    },
+    cropMoveSurface: {
+      position: 'absolute',
+      top: 24,
+      right: 24,
+      bottom: 24,
+      left: 24,
+    },
+    cropEdgeTouchArea: {
+      position: 'absolute',
+      zIndex: 1,
+    },
+    cropEdgeTop: {
+      top: -10,
+      right: 22,
+      left: 22,
+      height: 20,
+    },
+    cropEdgeRight: {
+      top: 22,
+      right: -10,
+      bottom: 22,
+      width: 20,
+    },
+    cropEdgeBottom: {
+      right: 22,
+      bottom: -10,
+      left: 22,
+      height: 20,
+    },
+    cropEdgeLeft: {
+      top: 22,
+      bottom: 22,
+      left: -10,
+      width: 20,
     },
     cropHandleTouchArea: {
       position: 'absolute',
-      width: 34,
-      height: 34,
+      width: 48,
+      height: 48,
+      zIndex: 2,
     },
     cropHandleTop: {
-      top: -6,
+      top: -10,
     },
     cropHandleBottom: {
-      bottom: -6,
+      bottom: -10,
     },
     cropHandleLeft: {
-      left: -6,
+      left: -10,
     },
     cropHandleRight: {
-      right: -6,
+      right: -10,
     },
     cropHandleHorizontal: {
       position: 'absolute',
-      width: 18,
-      height: 4,
-      borderRadius: radius.pill,
+      width: 30,
+      height: 3,
       backgroundColor: '#FFFFFF',
     },
     cropHandleHorizontalLeft: {
-      left: 0,
+      left: 10,
     },
     cropHandleHorizontalRight: {
-      right: 0,
+      right: 10,
     },
     cropHandleHorizontalTop: {
-      top: 0,
+      top: 10,
     },
     cropHandleHorizontalBottom: {
-      bottom: 0,
+      bottom: 10,
     },
     cropHandleVertical: {
       position: 'absolute',
-      width: 4,
-      height: 18,
-      borderRadius: radius.pill,
+      width: 3,
+      height: 30,
       backgroundColor: '#FFFFFF',
     },
     cropHandleVerticalLeft: {
-      left: 0,
+      left: 10,
     },
     cropHandleVerticalRight: {
-      right: 0,
+      right: 10,
     },
     cropHandleVerticalTop: {
-      top: 0,
+      top: 10,
     },
     cropHandleVerticalBottom: {
-      bottom: 0,
+      bottom: 10,
     },
     controlPressed: {
       opacity: 0.88,
