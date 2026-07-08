@@ -679,14 +679,17 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     nameInput: {
       ...typography.bodyLarge,
-      minHeight: 52,
+      height: 52,
       borderRadius: radius.lg,
       borderCurve: 'continuous',
       borderWidth: 1,
       borderColor: theme.colors.border,
       paddingHorizontal: spacing.md,
+      paddingVertical: 0,
       color: theme.colors.textSecondary,
       backgroundColor: theme.colors.surface,
+      lineHeight: 22,
+      includeFontPadding: false,
     },
     iconGroup: {
       gap: spacing.sm,

@@ -1,5 +1,6 @@
+import { Delete02Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { usePathname, useRouter } from 'expo-router';
+import { useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import type { ReactNode } from 'react';
@@ -13,7 +14,7 @@ import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
 
 import { AppDrawerPanel } from './app-drawer-panel';
-import { MainAppBar } from './main-app-bar';
+import { MainAppBar, MainAppBarActionButton } from './main-app-bar';
 import { MainBottomNav } from './main-bottom-nav';
 import { MonthSelectorChip } from './month-selector-chip';
 import {
@@ -30,6 +31,7 @@ type MainShellProps = {
 
 export function MainShell({ children }: MainShellProps) {
   const pathname = usePathname();
+  const searchParams = useGlobalSearchParams<{ employeeId?: string | string[]; mode?: string | string[] }>();
   const router = useRouter();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -39,15 +41,23 @@ export function MainShell({ children }: MainShellProps) {
 
   const styles = createStyles(theme, insets.top, insets.bottom);
   const isScanRoute = pathname.startsWith('/scan');
+  const employeeMode = pathname === '/employee'
+    ? normalizeSearchParam(searchParams.mode)
+    : undefined;
   const drawerWidth = width * 0.72;
-  const mainTitle = shellTitles[pathname] ?? 'Home';
+  const isEmployeeEditor = pathname === '/employee' && (employeeMode === 'create' || employeeMode === 'edit');
+  const mainTitle = isEmployeeEditor
+    ? employeeMode === 'edit'
+      ? 'Edit Employee'
+      : 'Create Employee'
+    : shellTitles[pathname] ?? 'Home';
   const hasCenterWidget = shellCenterWidgetRoutes.includes(
     pathname as (typeof shellCenterWidgetRoutes)[number]
   );
-  const centerChild = hasCenterWidget
+  const centerChild = hasCenterWidget && !isEmployeeEditor
     ? <MonthSelectorChip label={getMonthLabel()} onPress={() => {}} />
     : undefined;
-  const isChildShellRoute = pathname in shellBackFallbacks;
+  const isChildShellRoute = pathname in shellBackFallbacks || isEmployeeEditor;
 
   useEffect(() => {
     Animated.timing(progress, {
@@ -95,6 +105,11 @@ export function MainShell({ children }: MainShellProps) {
   }
 
   function handleAppBarLeftPress() {
+    if (isEmployeeEditor) {
+      router.replace('/employee');
+      return;
+    }
+
     if (!isChildShellRoute) {
       setIsDrawerOpen((value) => !value);
       return;
@@ -149,37 +164,55 @@ export function MainShell({ children }: MainShellProps) {
                 centerChild={centerChild}
                 leftMode={isChildShellRoute ? 'back' : 'menu'}
                 onLeftPress={handleAppBarLeftPress}
+                rightSlot={
+                  isEmployeeEditor && employeeMode === 'edit' ? (
+                    <MainAppBarActionButton
+                      icon={Delete02Icon}
+                      color="#FFFFFF"
+                      backgroundColor="#C41E1E"
+                      onPress={() => router.replace('/employee')}
+                    />
+                  ) : undefined
+                }
               />
 
               <View style={styles.screenContent}>{children}</View>
 
-              <MainBottomNav currentPathname={pathname} onNavigate={navigateTo} />
+              {!isEmployeeEditor ? (
+                <>
+                  <MainBottomNav currentPathname={pathname} onNavigate={navigateTo} />
 
-              <View pointerEvents="box-none" style={styles.scanFabOverlay}>
-                <Pressable
-                  onPress={() => navigateTo(shellNavRoutes[2].href)}
-                  style={styles.scanFabPressable}>
-                  {({ pressed }) => (
-                    <View style={[styles.scanFabWrapper, pressed ? styles.scanFabPressed : null]}>
-                      <View style={styles.scanFab}>
-                        <HugeiconsIcon
-                          icon={shellNavRoutes[2].icon}
-                          color="#FFFFFF"
-                          size={30}
-                          strokeWidth={2.1}
-                        />
-                      </View>
-                      <Text style={styles.scanFabLabel}>Scan Image</Text>
-                    </View>
-                  )}
-                </Pressable>
-              </View>
+                  <View pointerEvents="box-none" style={styles.scanFabOverlay}>
+                    <Pressable
+                      onPress={() => navigateTo(shellNavRoutes[2].href)}
+                      style={styles.scanFabPressable}>
+                      {({ pressed }) => (
+                        <View style={[styles.scanFabWrapper, pressed ? styles.scanFabPressed : null]}>
+                          <View style={styles.scanFab}>
+                            <HugeiconsIcon
+                              icon={shellNavRoutes[2].icon}
+                              color="#FFFFFF"
+                              size={30}
+                              strokeWidth={2.1}
+                            />
+                          </View>
+                          <Text style={styles.scanFabLabel}>Scan Image</Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  </View>
+                </>
+              ) : null}
             </View>
           </View>
         </Animated.View>
       </View>
     </View>
   );
+}
+
+function normalizeSearchParam(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function getMonthLabel() {

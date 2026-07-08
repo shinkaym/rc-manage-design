@@ -10,6 +10,7 @@ import { typography } from '@/theme/tokens/typography';
 import { shellIcons } from './shell-config';
 
 type MainAppBarActionButtonProps = {
+  backgroundColor?: string;
   color?: string;
   disabled?: boolean;
   icon: typeof shellIcons.menu;
@@ -53,6 +54,7 @@ export function MainAppBar({
 }
 
 export function MainAppBarActionButton({
+  backgroundColor,
   color,
   disabled = false,
   icon,
@@ -70,6 +72,7 @@ export function MainAppBarActionButton({
         <View
           style={[
             styles.iconButton,
+            backgroundColor ? { backgroundColor } : null,
             disabled ? styles.iconButtonDisabled : null,
             pressed && !disabled ? styles.iconButtonPressed : null,
           ]}>

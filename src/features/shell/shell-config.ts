@@ -64,7 +64,7 @@ export const shellTitles: Record<string, string> = {
   '/report': 'Report',
   '/category': 'Category',
   '/scan': 'Scan Image',
-  '/employee': 'Employee',
+  '/employee': 'Employee Portal',
   '/setting': 'Setting',
   '/account': 'My Account',
   '/map': 'Map',
