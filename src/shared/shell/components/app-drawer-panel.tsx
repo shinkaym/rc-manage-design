@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import type { Href } from 'expo-router';
+import type { RoutePath } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -12,7 +12,7 @@ import { drawerItems, type DrawerNavigationMode, shellIcons } from '../shell-con
 type AppDrawerPanelProps = {
   currentPathname: string;
   onClose: () => void;
-  onNavigate: (href: Href, navigationMode: DrawerNavigationMode) => void;
+  onNavigate: (href: RoutePath, navigationMode: DrawerNavigationMode) => void;
   width: number;
 };
 

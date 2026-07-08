@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import type { Href } from 'expo-router';
+import type { RoutePath } from 'expo-router';
 import { usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import type { ReactNode } from 'react';
@@ -84,8 +84,8 @@ export function MainShell({
     [progress],
   );
 
-  function navigateTo(href: Href, navigationMode: DrawerNavigationMode | 'replace' = 'replace') {
-    if (pathname !== href.toString() || navigationMode === 'push') {
+  function navigateTo(href: RoutePath, navigationMode: DrawerNavigationMode | 'replace' = 'replace') {
+    if (pathname !== href || navigationMode === 'push') {
       if (navigationMode === 'push') {
         router.push(href);
         return;

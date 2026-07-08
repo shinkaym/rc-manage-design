@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import type { Href } from 'expo-router';
+import type { RoutePath } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -10,7 +10,7 @@ import { shellMetrics, shellNavRoutes } from '../shell-config';
 
 type MainBottomNavProps = {
   currentPathname: string;
-  onNavigate: (href: Href) => void;
+  onNavigate: (href: RoutePath) => void;
 };
 
 export function MainBottomNav({ currentPathname, onNavigate }: MainBottomNavProps) {
@@ -52,10 +52,10 @@ export function MainBottomNav({ currentPathname, onNavigate }: MainBottomNavProp
 
 type BottomNavItemProps = {
   currentPathname: string;
-  href: Href;
+  href: RoutePath;
   icon: (typeof shellNavRoutes)[number]['icon'];
   label: string;
-  onNavigate: (href: Href) => void;
+  onNavigate: (href: RoutePath) => void;
 };
 
 function BottomNavItem({ currentPathname, href, icon, label, onNavigate }: BottomNavItemProps) {
