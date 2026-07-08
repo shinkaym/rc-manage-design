@@ -16,6 +16,13 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/hooks/use-app-theme';
+import {
+  defaultCategorySeed,
+  type CategoryItem,
+} from '@/features/category/category-data';
+import { CategoryBadge } from '@/features/category/components/category-badge';
+import { CategoryPickerSheet } from '@/features/category/components/category-picker-sheet';
+import { SegmentTabs } from '@/features/report/components/segment-tabs';
 import { MainAppBar } from '@/features/shell/main-app-bar';
 import { radius } from '@/theme/tokens/radius';
 import { spacing } from '@/theme/tokens/spacing';
@@ -68,6 +75,8 @@ export function ReceiptPreviewScreen() {
     address: '123 Market St, Suite 400',
   });
   const [isMerchantEditing, setIsMerchantEditing] = useState(false);
+  const [isMerchantCategoryPickerVisible, setIsMerchantCategoryPickerVisible] = useState(false);
+  const [merchantCategory, setMerchantCategory] = useState<CategoryItem>(defaultCategorySeed[0]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [cardForm, setCardForm] = useState<CardFormState>({
     cardPlaceholder: 'VISA',
@@ -96,6 +105,10 @@ export function ReceiptPreviewScreen() {
   const tipsValue = parseCurrencyValue(totals.tips);
   const discountValue = parseCurrencyValue(totals.discount);
   const totalAmount = subtotal + taxValue + tipsValue - discountValue;
+  const paymentMethodTabs = [
+    { icon: Cash01Icon, label: 'Cash', value: 'cash' as const },
+    { icon: CreditCardIcon, label: 'Card', value: 'card' as const },
+  ];
 
   function handleMerchantFieldChange(field: keyof MerchantFormState, value: string) {
     setMerchant((currentValue) => ({
@@ -199,6 +212,11 @@ export function ReceiptPreviewScreen() {
     setItemDrafts((currentValue) => [...currentValue, createEmptyReceiptItem()]);
   }
 
+  function handleSelectMerchantCategory(category: CategoryItem) {
+    setMerchantCategory(category);
+    setIsMerchantCategoryPickerVisible(false);
+  }
+
   return (
     <>
       <StatusBar style="dark" />
@@ -222,7 +240,7 @@ export function ReceiptPreviewScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}>
           <SectionCard>
-            <View style={styles.merchantGlow} />
+              <View style={styles.merchantGlow} />
             <SectionHeader
               icon={Store04Icon}
               title="Merchant"
@@ -238,7 +256,13 @@ export function ReceiptPreviewScreen() {
             {isMerchantEditing ? (
               <View style={styles.sectionBody}>
                 <View style={styles.merchantNameInputRow}>
-                  <MerchantBadge />
+                  <View style={styles.merchantBadgeColumn}>
+                    <CategoryBadge
+                      category={merchantCategory}
+                      onPress={() => setIsMerchantCategoryPickerVisible(true)}
+                    />
+                    <Text style={styles.badgeHintText}>Tap to change</Text>
+                  </View>
                   <View style={styles.merchantNameInputColumn}>
                     <Text style={styles.fieldLabel}>NAME</Text>
                     <ReceiptInput
@@ -278,10 +302,11 @@ export function ReceiptPreviewScreen() {
             ) : (
               <View style={styles.sectionBody}>
                 <View style={styles.merchantIdentityRow}>
-                  <MerchantBadge />
+                  <CategoryBadge category={merchantCategory} />
                   <View style={styles.merchantIdentityText}>
                     <Text style={styles.fieldLabel}>NAME</Text>
                     <Text style={styles.fieldValue}>{merchant.name}</Text>
+                    <Text style={styles.merchantCategoryValue}>{merchantCategory.label}</Text>
                   </View>
                 </View>
 
@@ -355,18 +380,11 @@ export function ReceiptPreviewScreen() {
               icon={Payment01Icon}
               title="Payment Method"
               trailing={
-                <View style={styles.segmentedControl}>
-                  <SegmentTab
-                    icon={Cash01Icon}
-                    isActive={paymentMethod === 'cash'}
-                    label="Cash"
-                    onPress={() => setPaymentMethod('cash')}
-                  />
-                  <SegmentTab
-                    icon={CreditCardIcon}
-                    isActive={paymentMethod === 'card'}
-                    label="Card"
-                    onPress={() => setPaymentMethod('card')}
+                <View style={styles.paymentMethodTabsWrap}>
+                  <SegmentTabs
+                    items={paymentMethodTabs}
+                    selectedValue={paymentMethod}
+                    onChange={setPaymentMethod}
                   />
                 </View>
               }
@@ -486,6 +504,13 @@ export function ReceiptPreviewScreen() {
           onMoveItem={handleMoveItemDraft}
           onSave={handleSaveItemsDialog}
         />
+
+        <CategoryPickerSheet
+          isVisible={isMerchantCategoryPickerVisible}
+          onClose={() => setIsMerchantCategoryPickerVisible(false)}
+          onSelect={handleSelectMerchantCategory}
+          selectedCategoryId={merchantCategory.id}
+        />
       </View>
     </>
   );
@@ -565,19 +590,6 @@ function SectionEditButton({
   );
 }
 
-function MerchantBadge() {
-  const theme = useAppTheme();
-  const styles = createStyles(theme, 0, 0);
-
-  return (
-    <View style={styles.merchantBadge}>
-      <View style={styles.merchantBadgeAccentPrimary} />
-      <View style={styles.merchantBadgeAccentSecondary} />
-      <HugeiconsIcon icon={Store04Icon} color={theme.colors.secondary} size={20} strokeWidth={1.9} />
-    </View>
-  );
-}
-
 type MerchantDateFieldProps = {
   onPress: () => void;
   value: string;
@@ -649,41 +661,6 @@ function ReceiptInput({
       textAlignVertical={multiline ? 'top' : 'center'}
       style={[styles.receiptInput, multiline ? styles.receiptInputMultiline : null]}
     />
-  );
-}
-
-type SegmentTabProps = {
-  icon: HugeIcon;
-  isActive: boolean;
-  label: string;
-  onPress: () => void;
-};
-
-function SegmentTab({ icon, isActive, label, onPress }: SegmentTabProps) {
-  const theme = useAppTheme();
-  const styles = createStyles(theme, 0, 0);
-
-  return (
-    <Pressable onPress={onPress} style={styles.segmentTabPressable}>
-      {({ pressed }) => (
-        <View
-          style={[
-            styles.segmentTab,
-            isActive ? styles.segmentTabActive : null,
-            pressed ? styles.segmentTabPressed : null,
-          ]}>
-          <HugeiconsIcon
-            icon={icon}
-            color={isActive ? '#FFFFFF' : theme.colors.textSecondary}
-            size={15}
-            strokeWidth={1.8}
-          />
-          <Text style={[styles.segmentTabLabel, isActive ? styles.segmentTabLabelActive : null]}>
-            {label}
-          </Text>
-        </View>
-      )}
-    </Pressable>
   );
 }
 
@@ -827,6 +804,9 @@ function createStyles(
     sectionHeaderTrailing: {
       marginLeft: spacing.sm,
     },
+    paymentMethodTabsWrap: {
+      width: 150,
+    },
     sectionEditPressable: {
       borderRadius: radius.md,
     },
@@ -865,44 +845,26 @@ function createStyles(
       flex: 1,
       gap: spacing.xxs,
     },
+    merchantCategoryValue: {
+      ...typography.bodyMedium,
+      color: theme.colors.textTertiary,
+    },
     merchantNameInputRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
     },
+    merchantBadgeColumn: {
+      alignItems: 'center',
+      gap: spacing.xxs,
+    },
     merchantNameInputColumn: {
       flex: 1,
       gap: spacing.xxs,
     },
-    merchantBadge: {
-      width: 48,
-      height: 48,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: radius.lg,
-      borderCurve: 'continuous',
-      backgroundColor: '#FFF3DB',
-      borderWidth: 1,
-      borderColor: 'rgba(87, 66, 53, 0.10)',
-      overflow: 'hidden',
-    },
-    merchantBadgeAccentPrimary: {
-      position: 'absolute',
-      top: 6,
-      left: 8,
-      width: 14,
-      height: 24,
-      borderRadius: radius.sm,
-      backgroundColor: '#F99AA6',
-    },
-    merchantBadgeAccentSecondary: {
-      position: 'absolute',
-      right: 8,
-      bottom: 10,
-      width: 8,
-      height: 14,
-      borderRadius: radius.sm,
-      backgroundColor: '#FFCC73',
+    badgeHintText: {
+      ...typography.labelLarge,
+      color: theme.colors.textHint,
     },
     dateFieldPressable: {
       borderRadius: radius.md,
@@ -1015,45 +977,6 @@ function createStyles(
     },
     itemValueAlignedRight: {
       textAlign: 'right',
-    },
-    segmentedControl: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 4,
-      borderRadius: radius.pill,
-      borderCurve: 'continuous',
-      borderWidth: 1,
-      borderColor: 'rgba(225, 227, 228, 0.9)',
-      backgroundColor: theme.colors.surface,
-      gap: 4,
-    },
-    segmentTabPressable: {
-      borderRadius: radius.pill,
-    },
-    segmentTab: {
-      minWidth: 58,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'row',
-      gap: spacing.xxs,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: radius.pill,
-      borderCurve: 'continuous',
-    },
-    segmentTabActive: {
-      backgroundColor: theme.colors.primary,
-    },
-    segmentTabPressed: {
-      opacity: 0.88,
-    },
-    segmentTabLabel: {
-      ...typography.labelLarge,
-      color: theme.colors.textSecondary,
-      fontFamily: typography.titleMedium.fontFamily,
-    },
-    segmentTabLabelActive: {
-      color: '#FFFFFF',
     },
     paymentInputsRow: {
       flexDirection: 'row',

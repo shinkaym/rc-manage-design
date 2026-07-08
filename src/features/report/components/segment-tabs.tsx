@@ -1,3 +1,5 @@
+import { Home01Icon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useAppTheme } from '@/hooks/use-app-theme';
@@ -6,6 +8,7 @@ import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
 
 export type SegmentTabItem<T> = {
+  icon?: typeof Home01Icon;
   label: string;
   value: T;
 };
@@ -35,16 +38,24 @@ export function SegmentTabs<T>({
             onPress={() => onChange(item.value)}
             style={styles.buttonPressable}>
             {({ pressed }) => (
-              <View
-                style={[
-                  styles.button,
-                  isSelected ? styles.buttonSelected : null,
-                  pressed && !isSelected ? styles.buttonPressed : null,
-                ]}>
-                <Text style={[styles.label, isSelected ? styles.labelSelected : null]}>
-                  {item.label}
-                </Text>
-              </View>
+                <View
+                  style={[
+                    styles.button,
+                    isSelected ? styles.buttonSelected : null,
+                    pressed && !isSelected ? styles.buttonPressed : null,
+                  ]}>
+                  {item.icon ? (
+                    <HugeiconsIcon
+                      icon={item.icon}
+                      color={isSelected ? theme.colors.surface : theme.colors.textSecondary}
+                      size={15}
+                      strokeWidth={1.8}
+                    />
+                  ) : null}
+                  <Text style={[styles.label, isSelected ? styles.labelSelected : null]}>
+                    {item.label}
+                  </Text>
+                </View>
             )}
           </Pressable>
         );
@@ -78,6 +89,8 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       overflow: 'hidden',
       alignItems: 'center',
       justifyContent: 'center',
+      flexDirection: 'row',
+      gap: spacing.xxs,
     },
     buttonSelected: {
       backgroundColor: theme.colors.primary,
