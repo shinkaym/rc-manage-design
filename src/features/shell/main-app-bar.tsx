@@ -51,6 +51,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
       paddingBottom: spacing.sm,
+      backgroundColor: theme.colors.background,
     },
     menuButtonPressable: {
       borderRadius: radius.pill,

@@ -393,7 +393,7 @@ export function ScanScreen() {
   }
 
   function handleSendImage() {
-    showMessage('Preview confirmed. Send flow can be connected next.');
+    router.push('/receipt-preview');
   }
 
   return (
