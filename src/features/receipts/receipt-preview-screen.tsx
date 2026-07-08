@@ -2,7 +2,6 @@ import {
   ArrowLeft01Icon,
   Cash01Icon,
   CreditCardIcon,
-  Drag04Icon,
   Edit02Icon,
   Note01Icon,
   Payment01Icon,
@@ -14,14 +13,7 @@ import { HugeiconsIcon } from '@hugeicons/react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/hooks/use-app-theme';
@@ -29,11 +21,18 @@ import { radius } from '@/theme/tokens/radius';
 import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
 
-const receiptItemsSeed = [
-  { id: 'fuel', name: 'Fuel', quantity: 1, price: 5 },
-  { id: 'water', name: 'Sparkling Water', quantity: 2, price: 3.5 },
-  { id: 'snack', name: 'Protein Snack', quantity: 1, price: 6.25 },
-] as const;
+import { ItemsEditDialog } from './components/items-edit-dialog';
+import {
+  createEmptyReceiptItem,
+  formatCurrency,
+  getReceiptItemTotal,
+  initialReceiptItems,
+  moveItemByDirection,
+  parseCurrencyValue,
+  sanitizeCurrencyInput,
+  sanitizeIntegerInput,
+} from './receipt-item-utils';
+import type { ReceiptItemState } from './receipt-types';
 
 const footerHeight = 116;
 
@@ -74,6 +73,9 @@ export function ReceiptPreviewScreen() {
     cardPlaceholder: 'VISA',
     lastFourDigits: '4224',
   });
+  const [items, setItems] = useState<ReceiptItemState[]>(initialReceiptItems);
+  const [itemDrafts, setItemDrafts] = useState<ReceiptItemState[]>(initialReceiptItems);
+  const [isItemsDialogVisible, setIsItemsDialogVisible] = useState(false);
   const [note, setNote] = useState('Fill up');
   const [totals, setTotals] = useState<TotalsFormState>({
     tax: '12.00',
@@ -87,19 +89,15 @@ export function ReceiptPreviewScreen() {
   });
 
   const subtotal = useMemo(
-    () =>
-      receiptItemsSeed.reduce((sum, item) => sum + item.quantity * item.price, 0),
-    []
+    () => items.reduce((sum, item) => sum + getReceiptItemTotal(item), 0),
+    [items]
   );
   const taxValue = parseCurrencyValue(totals.tax);
   const tipsValue = parseCurrencyValue(totals.tips);
   const discountValue = parseCurrencyValue(totals.discount);
   const totalAmount = subtotal + taxValue + tipsValue - discountValue;
 
-  function handleMerchantFieldChange(
-    field: keyof MerchantFormState,
-    value: string
-  ) {
+  function handleMerchantFieldChange(field: keyof MerchantFormState, value: string) {
     setMerchant((currentValue) => ({
       ...currentValue,
       [field]: value,
@@ -131,6 +129,74 @@ export function ReceiptPreviewScreen() {
         [field]: true,
       };
     });
+  }
+
+  function handleOpenItemsDialog() {
+    setItemDrafts(items.map((item) => ({ ...item })));
+    setIsItemsDialogVisible(true);
+  }
+
+  function handleCloseItemsDialog() {
+    setIsItemsDialogVisible(false);
+    setItemDrafts(items.map((item) => ({ ...item })));
+  }
+
+  function handleSaveItemsDialog() {
+    const sanitizedItems = itemDrafts.map((item) => ({
+      ...item,
+      name: item.name.trim() || 'Untitled item',
+      quantity: sanitizeIntegerInput(item.quantity) || '0',
+      price: sanitizeCurrencyInput(item.price) || '0',
+    }));
+
+    setItems(sanitizedItems);
+    setItemDrafts(sanitizedItems.map((item) => ({ ...item })));
+    setIsItemsDialogVisible(false);
+  }
+
+  function handleItemDraftChange(
+    itemId: string,
+    field: keyof Pick<ReceiptItemState, 'name' | 'price' | 'quantity'>,
+    value: string
+  ) {
+    setItemDrafts((currentValue) =>
+      currentValue.map((item) => {
+        if (item.id !== itemId) {
+          return item;
+        }
+
+        if (field === 'quantity') {
+          return {
+            ...item,
+            quantity: sanitizeIntegerInput(value),
+          };
+        }
+
+        if (field === 'price') {
+          return {
+            ...item,
+            price: sanitizeCurrencyInput(value),
+          };
+        }
+
+        return {
+          ...item,
+          name: value,
+        };
+      })
+    );
+  }
+
+  function handleDeleteItemDraft(itemId: string) {
+    setItemDrafts((currentValue) => currentValue.filter((item) => item.id !== itemId));
+  }
+
+  function handleMoveItemDraft(itemId: string, direction: 'down' | 'up') {
+    setItemDrafts((currentValue) => moveItemByDirection(currentValue, itemId, direction));
+  }
+
+  function handleAddItemDraft() {
+    setItemDrafts((currentValue) => [...currentValue, createEmptyReceiptItem()]);
   }
 
   return (
@@ -194,11 +260,7 @@ export function ReceiptPreviewScreen() {
 
                   <View style={styles.columnField}>
                     <Text style={styles.fieldLabel}>DATE</Text>
-                    <ReceiptInput
-                      value={merchant.date}
-                      onChangeText={(value) => handleMerchantFieldChange('date', value)}
-                      placeholder="Date"
-                    />
+                    <MerchantDateField value={merchant.date} onPress={() => {}} />
                   </View>
                 </View>
 
@@ -208,6 +270,7 @@ export function ReceiptPreviewScreen() {
                     value={merchant.address}
                     onChangeText={(value) => handleMerchantFieldChange('address', value)}
                     placeholder="Address"
+                    multiline
                   />
                 </View>
               </View>
@@ -235,51 +298,53 @@ export function ReceiptPreviewScreen() {
             <SectionHeader
               icon={ShoppingBag01Icon}
               title="Items"
-              trailing={<SectionEditButton label="Edit" onPress={() => {}} />}
+              trailing={<SectionEditButton label="Edit" onPress={handleOpenItemsDialog} />}
             />
 
             <View style={styles.sectionBody}>
               <View style={styles.itemsHeaderRow}>
-                <Text style={[styles.tableHeaderText, styles.itemNameColumn]}>NAME</Text>
-                <Text style={[styles.tableHeaderText, styles.itemQuantityColumn]}>QUANTITY</Text>
-                <Text style={[styles.tableHeaderText, styles.itemPriceColumn]}>PRICE</Text>
-                <Text style={[styles.tableHeaderText, styles.itemTotalColumn]}>TOTAL</Text>
-                <View style={styles.itemActionColumn} />
+                <View style={styles.itemNameColumn}>
+                  <Text style={styles.tableHeaderText}>NAME</Text>
+                </View>
+                <View style={styles.itemQuantityColumn}>
+                  <Text style={[styles.tableHeaderText, styles.tableHeaderCentered]}>QTY</Text>
+                </View>
+                <View style={styles.itemPriceColumn}>
+                  <Text style={[styles.tableHeaderText, styles.tableHeaderCentered]}>PRICE</Text>
+                </View>
+                <View style={styles.itemTotalColumn}>
+                  <Text style={[styles.tableHeaderText, styles.tableHeaderAlignedRight]}>TOTAL</Text>
+                </View>
               </View>
 
               <View style={styles.itemsList}>
-                {receiptItemsSeed.map((item) => {
-                  const total = item.quantity * item.price;
-
-                  return (
-                    <View key={item.id} style={styles.itemRow}>
-                      <Text style={[styles.itemValueText, styles.itemNameColumn]}>{item.name}</Text>
-
-                      <View style={[styles.valuePill, styles.itemQuantityColumn]}>
-                        <Text style={styles.valuePillText}>{item.quantity}</Text>
-                      </View>
-
-                      <View style={[styles.valuePill, styles.itemPriceColumn]}>
-                        <Text style={styles.valuePillText}>{formatCurrency(item.price)}</Text>
-                      </View>
-
-                      <View style={[styles.valuePill, styles.itemTotalColumn]}>
-                        <Text style={styles.valuePillText}>{formatCurrency(total)}</Text>
-                      </View>
-
-                      <View style={styles.itemActionColumn}>
-                        <View style={styles.dragHandleBadge}>
-                          <HugeiconsIcon
-                            icon={Drag04Icon}
-                            color={theme.colors.textSecondary}
-                            size={18}
-                            strokeWidth={1.8}
-                          />
-                        </View>
-                      </View>
+                {items.map((item, index) => (
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.itemRow,
+                      index !== items.length - 1 ? styles.itemRowDivider : null,
+                    ]}>
+                    <View style={styles.itemNameColumn}>
+                      <Text style={styles.itemValueText}>{item.name}</Text>
                     </View>
-                  );
-                })}
+                    <View style={styles.itemQuantityColumn}>
+                      <Text style={[styles.itemValueText, styles.itemValueCentered]}>
+                        {item.quantity || '0'}
+                      </Text>
+                    </View>
+                    <View style={styles.itemPriceColumn}>
+                      <Text style={[styles.itemValueText, styles.itemValueCentered]}>
+                        {formatCurrency(parseCurrencyValue(item.price))}
+                      </Text>
+                    </View>
+                    <View style={styles.itemTotalColumn}>
+                      <Text style={[styles.itemValueText, styles.itemValueAlignedRight]}>
+                        {formatCurrency(getReceiptItemTotal(item))}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
               </View>
             </View>
           </SectionCard>
@@ -409,6 +474,17 @@ export function ReceiptPreviewScreen() {
             )}
           </Pressable>
         </View>
+
+        <ItemsEditDialog
+          items={itemDrafts}
+          isVisible={isItemsDialogVisible}
+          onAddItem={handleAddItemDraft}
+          onChangeItem={handleItemDraftChange}
+          onClose={handleCloseItemsDialog}
+          onDeleteItem={handleDeleteItemDraft}
+          onMoveItem={handleMoveItemDraft}
+          onSave={handleSaveItemsDialog}
+        />
       </View>
     </>
   );
@@ -521,6 +597,32 @@ function MerchantBadge() {
   );
 }
 
+type MerchantDateFieldProps = {
+  onPress: () => void;
+  value: string;
+};
+
+function MerchantDateField({ onPress, value }: MerchantDateFieldProps) {
+  const theme = useAppTheme();
+  const styles = createStyles(theme, 0, 0);
+
+  return (
+    <Pressable onPress={onPress} style={styles.dateFieldPressable}>
+      {({ pressed }) => (
+        <View style={[styles.dateField, pressed ? styles.dateFieldPressed : null]}>
+          <Text style={styles.dateFieldValue}>{value}</Text>
+          <HugeiconsIcon
+            icon={PencilEdit02Icon}
+            color={theme.colors.secondary}
+            size={16}
+            strokeWidth={1.8}
+          />
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
 type DisplayFieldProps = {
   label: string;
   value: string;
@@ -538,6 +640,7 @@ function DisplayField({ label, value }: DisplayFieldProps) {
 }
 
 type ReceiptInputProps = {
+  keyboardType?: 'decimal-pad' | 'default' | 'number-pad';
   multiline?: boolean;
   onChangeText: (value: string) => void;
   placeholder: string;
@@ -545,6 +648,7 @@ type ReceiptInputProps = {
 };
 
 function ReceiptInput({
+  keyboardType = 'default',
   multiline = false,
   onChangeText,
   placeholder,
@@ -557,6 +661,7 @@ function ReceiptInput({
     <TextInput
       value={value}
       onChangeText={onChangeText}
+      keyboardType={keyboardType}
       placeholder={placeholder}
       placeholderTextColor={theme.colors.textHint}
       multiline={multiline}
@@ -660,35 +765,6 @@ function EditableTotalRow({
       )}
     </View>
   );
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
-function parseCurrencyValue(value: string) {
-  const normalizedValue = Number.parseFloat(value.replace(/[^0-9.]/g, ''));
-
-  return Number.isFinite(normalizedValue) ? normalizedValue : 0;
-}
-
-function sanitizeCurrencyInput(value: string) {
-  const sanitizedValue = value.replace(/[^0-9.]/g, '');
-  const firstDotIndex = sanitizedValue.indexOf('.');
-
-  if (firstDotIndex === -1) {
-    return sanitizedValue;
-  }
-
-  const head = sanitizedValue.slice(0, firstDotIndex + 1);
-  const tail = sanitizedValue.slice(firstDotIndex + 1).replace(/\./g, '');
-
-  return `${head}${tail}`;
 }
 
 function createStyles(
@@ -879,6 +955,29 @@ function createStyles(
       borderRadius: radius.sm,
       backgroundColor: '#FFCC73',
     },
+    dateFieldPressable: {
+      borderRadius: radius.md,
+    },
+    dateField: {
+      minHeight: 36,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.md,
+      borderCurve: 'continuous',
+      backgroundColor: theme.colors.surfaceAlt,
+      gap: spacing.sm,
+    },
+    dateFieldPressed: {
+      opacity: 0.9,
+    },
+    dateFieldValue: {
+      ...typography.bodyMedium,
+      color: theme.colors.textSecondary,
+      flex: 1,
+    },
     twoColumnRow: {
       flexDirection: 'row',
       gap: spacing.md,
@@ -914,7 +1013,7 @@ function createStyles(
       ...typography.bodyLarge,
     },
     receiptInputMultiline: {
-      minHeight: 82,
+      minHeight: 92,
     },
     itemsHeaderRow: {
       flexDirection: 'row',
@@ -926,56 +1025,47 @@ function createStyles(
       color: theme.colors.textTertiary,
       letterSpacing: 0.5,
     },
+    tableHeaderCentered: {
+      textAlign: 'center',
+    },
+    tableHeaderAlignedRight: {
+      textAlign: 'right',
+    },
     itemsList: {
-      gap: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(225, 227, 228, 0.7)',
     },
     itemRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
+      paddingVertical: spacing.sm,
+    },
+    itemRowDivider: {
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(225, 227, 228, 0.7)',
     },
     itemNameColumn: {
-      flex: 1.6,
+      flex: 1.7,
     },
     itemQuantityColumn: {
       flex: 0.7,
     },
     itemPriceColumn: {
-      flex: 0.9,
+      flex: 1,
     },
     itemTotalColumn: {
-      flex: 0.95,
-    },
-    itemActionColumn: {
-      width: 34,
-      alignItems: 'flex-end',
+      flex: 1,
     },
     itemValueText: {
       ...typography.bodyMedium,
       color: theme.colors.textSecondary,
     },
-    valuePill: {
-      minHeight: 30,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: spacing.xs,
-      borderRadius: radius.md,
-      borderCurve: 'continuous',
-      backgroundColor: theme.colors.surfaceAlt,
-    },
-    valuePillText: {
-      ...typography.bodyMedium,
-      color: theme.colors.textSecondary,
+    itemValueCentered: {
       textAlign: 'center',
     },
-    dragHandleBadge: {
-      width: 28,
-      height: 28,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: radius.pill,
-      borderCurve: 'continuous',
-      backgroundColor: theme.colors.surfaceAlt,
+    itemValueAlignedRight: {
+      textAlign: 'right',
     },
     segmentedControl: {
       flexDirection: 'row',
