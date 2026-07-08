@@ -9,38 +9,33 @@ import { typography } from '@/theme/tokens/typography';
 
 import { shellIcons } from './shell-config';
 
-type MainAppBarActionButtonProps = {
+type SubAppBarActionButtonProps = {
   backgroundColor?: string;
   color?: string;
-  disabled?: boolean;
-  icon: typeof shellIcons.menu;
+  icon: typeof shellIcons.back;
   onPress: () => void;
 };
 
-type MainAppBarProps = {
-  centerChild?: ReactNode;
-  onMenuPress: () => void;
+type SubAppBarProps = {
+  onBackPress: () => void;
   rightSlot?: ReactNode;
-  title?: string;
+  title: string;
 };
 
-export function MainAppBar({
-  centerChild,
-  onMenuPress,
-  rightSlot,
-  title,
-}: MainAppBarProps) {
+export function SubAppBar({ onBackPress, rightSlot, title }: SubAppBarProps) {
   const theme = useAppTheme();
   const styles = createStyles(theme);
 
   return (
     <View style={styles.container}>
       <View style={[styles.sideSlot, styles.sideSlotLeft]}>
-        <MainAppBarActionButton icon={shellIcons.menu} onPress={onMenuPress} />
+        <SubAppBarActionButton icon={shellIcons.back} onPress={onBackPress} />
       </View>
 
       <View style={styles.centerContent}>
-        {centerChild ?? (title ? <Text style={styles.title}>{title}</Text> : null)}
+        <Text numberOfLines={1} style={styles.title}>
+          {title}
+        </Text>
       </View>
 
       <View style={[styles.sideSlot, styles.sideSlotRight]}>
@@ -50,28 +45,23 @@ export function MainAppBar({
   );
 }
 
-export function MainAppBarActionButton({
+export function SubAppBarActionButton({
   backgroundColor,
   color,
-  disabled = false,
   icon,
   onPress,
-}: MainAppBarActionButtonProps) {
+}: SubAppBarActionButtonProps) {
   const theme = useAppTheme();
   const styles = createStyles(theme);
 
   return (
-    <Pressable
-      disabled={disabled}
-      onPress={onPress}
-      style={styles.iconButtonPressable}>
+    <Pressable onPress={onPress} style={styles.iconButtonPressable}>
       {({ pressed }) => (
         <View
           style={[
             styles.iconButton,
             backgroundColor ? { backgroundColor } : null,
-            disabled ? styles.iconButtonDisabled : null,
-            pressed && !disabled ? styles.iconButtonPressed : null,
+            pressed ? styles.iconButtonPressed : null,
           ]}>
           <HugeiconsIcon
             icon={icon}
@@ -122,9 +112,6 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     iconButtonPressed: {
       opacity: 0.9,
-    },
-    iconButtonDisabled: {
-      opacity: 0.5,
     },
     centerContent: {
       flex: 1,

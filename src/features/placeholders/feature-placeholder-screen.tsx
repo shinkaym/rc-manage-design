@@ -9,14 +9,16 @@ import { typography } from '@/theme/tokens/typography';
 type FeaturePlaceholderScreenProps = {
   description: string;
   title: string;
+  withBottomNavSpacing?: boolean;
 };
 
 export function FeaturePlaceholderScreen({
   description,
   title,
+  withBottomNavSpacing = false,
 }: FeaturePlaceholderScreenProps) {
   const theme = useAppTheme();
-  const styles = createStyles(theme);
+  const styles = createStyles(theme, withBottomNavSpacing);
 
   return (
     <>
@@ -34,7 +36,10 @@ export function FeaturePlaceholderScreen({
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>) {
+function createStyles(
+  theme: ReturnType<typeof useAppTheme>,
+  withBottomNavSpacing: boolean
+) {
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -46,12 +51,13 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       alignItems: 'center',
       paddingHorizontal: spacing.xl,
       paddingTop: spacing.xl,
-      paddingBottom:
-        shellMetrics.bottomNavHeight +
-        shellMetrics.centerFabSize / 2 +
-        shellMetrics.centerFabGap +
-        shellMetrics.centerFabLabelHeight +
-        spacing.sm,
+      paddingBottom: withBottomNavSpacing
+        ? shellMetrics.bottomNavHeight +
+          shellMetrics.centerFabSize / 2 +
+          shellMetrics.centerFabGap +
+          shellMetrics.centerFabLabelHeight +
+          spacing.sm
+        : spacing.xl,
     },
     card: {
       width: '100%',

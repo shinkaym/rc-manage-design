@@ -1,6 +1,5 @@
-import { Delete02Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import type { ReactNode } from 'react';
@@ -14,24 +13,28 @@ import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
 
 import { AppDrawerPanel } from './app-drawer-panel';
-import { MainAppBar, MainAppBarActionButton } from './main-app-bar';
+import { MainAppBar } from './main-app-bar';
 import { MainBottomNav } from './main-bottom-nav';
-import { MonthSelectorChip } from './month-selector-chip';
-import {
-  shellBackFallbacks,
-  shellCenterWidgetRoutes,
-  shellMetrics,
-  shellNavRoutes,
-  shellTitles,
-} from './shell-config';
+import { shellMetrics, shellNavRoutes, type DrawerNavigationMode } from './shell-config';
 
 type MainShellProps = {
   children: ReactNode;
+  headerCenterChild?: ReactNode;
+  headerRightSlot?: ReactNode;
+  headerTitle?: string;
+  showBottomNav?: boolean;
+  showScanFab?: boolean;
 };
 
-export function MainShell({ children }: MainShellProps) {
+export function MainShell({
+  children,
+  headerCenterChild,
+  headerRightSlot,
+  headerTitle,
+  showBottomNav = true,
+  showScanFab = true,
+}: MainShellProps) {
   const pathname = usePathname();
-  const searchParams = useGlobalSearchParams<{ employeeId?: string | string[]; mode?: string | string[] }>();
   const router = useRouter();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -40,24 +43,7 @@ export function MainShell({ children }: MainShellProps) {
   const progress = useRef(new Animated.Value(0)).current;
 
   const styles = createStyles(theme, insets.top, insets.bottom);
-  const isScanRoute = pathname.startsWith('/scan');
-  const employeeMode = pathname === '/employee'
-    ? normalizeSearchParam(searchParams.mode)
-    : undefined;
   const drawerWidth = width * 0.72;
-  const isEmployeeEditor = pathname === '/employee' && (employeeMode === 'create' || employeeMode === 'edit');
-  const mainTitle = isEmployeeEditor
-    ? employeeMode === 'edit'
-      ? 'Edit Employee'
-      : 'Create Employee'
-    : shellTitles[pathname] ?? 'Home';
-  const hasCenterWidget = shellCenterWidgetRoutes.includes(
-    pathname as (typeof shellCenterWidgetRoutes)[number]
-  );
-  const centerChild = hasCenterWidget && !isEmployeeEditor
-    ? <MonthSelectorChip label={getMonthLabel()} onPress={() => {}} />
-    : undefined;
-  const isChildShellRoute = pathname in shellBackFallbacks || isEmployeeEditor;
 
   useEffect(() => {
     Animated.timing(progress, {
@@ -98,39 +84,15 @@ export function MainShell({ children }: MainShellProps) {
     [progress]
   );
 
-  function navigateTo(href: Href) {
-    if (pathname !== href.toString()) {
+  function navigateTo(href: Href, navigationMode: DrawerNavigationMode | 'replace' = 'replace') {
+    if (pathname !== href.toString() || navigationMode === 'push') {
+      if (navigationMode === 'push') {
+        router.push(href);
+        return;
+      }
+
       router.replace(href);
     }
-  }
-
-  function handleAppBarLeftPress() {
-    if (isEmployeeEditor) {
-      router.replace('/employee');
-      return;
-    }
-
-    if (!isChildShellRoute) {
-      setIsDrawerOpen((value) => !value);
-      return;
-    }
-
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-
-    const fallbackHref = shellBackFallbacks[pathname] ?? '/home';
-    router.replace(fallbackHref);
-  }
-
-  if (isScanRoute) {
-    return (
-      <View style={styles.scanContainer}>
-        <StatusBar style="light" />
-        {children}
-      </View>
-    );
   }
 
   return (
@@ -160,47 +122,39 @@ export function MainShell({ children }: MainShellProps) {
                 isDrawerOpen ? styles.mainCardOpen : null,
               ]}>
               <MainAppBar
-                title={centerChild ? undefined : mainTitle}
-                centerChild={centerChild}
-                leftMode={isChildShellRoute ? 'back' : 'menu'}
-                onLeftPress={handleAppBarLeftPress}
-                rightSlot={
-                  isEmployeeEditor && employeeMode === 'edit' ? (
-                    <MainAppBarActionButton
-                      icon={Delete02Icon}
-                      color="#FFFFFF"
-                      backgroundColor="#C41E1E"
-                      onPress={() => router.replace('/employee')}
-                    />
-                  ) : undefined
-                }
+                title={headerCenterChild ? undefined : headerTitle}
+                centerChild={headerCenterChild}
+                onMenuPress={() => setIsDrawerOpen((value) => !value)}
+                rightSlot={headerRightSlot}
               />
 
               <View style={styles.screenContent}>{children}</View>
 
-              {!isEmployeeEditor ? (
+              {showBottomNav ? (
                 <>
                   <MainBottomNav currentPathname={pathname} onNavigate={navigateTo} />
 
-                  <View pointerEvents="box-none" style={styles.scanFabOverlay}>
-                    <Pressable
-                      onPress={() => navigateTo(shellNavRoutes[2].href)}
-                      style={styles.scanFabPressable}>
-                      {({ pressed }) => (
-                        <View style={[styles.scanFabWrapper, pressed ? styles.scanFabPressed : null]}>
-                          <View style={styles.scanFab}>
-                            <HugeiconsIcon
-                              icon={shellNavRoutes[2].icon}
-                              color="#FFFFFF"
-                              size={30}
-                              strokeWidth={2.1}
-                            />
+                  {showScanFab ? (
+                    <View pointerEvents="box-none" style={styles.scanFabOverlay}>
+                      <Pressable
+                        onPress={() => navigateTo(shellNavRoutes[2].href)}
+                        style={styles.scanFabPressable}>
+                        {({ pressed }) => (
+                            <View style={[styles.scanFabWrapper, pressed ? styles.scanFabPressed : null]}>
+                            <View style={styles.scanFab}>
+                              <HugeiconsIcon
+                                icon={shellNavRoutes[2].icon}
+                                color="#FFFFFF"
+                                size={30}
+                                strokeWidth={2.1}
+                              />
+                            </View>
+                            <Text style={styles.scanFabLabel}>{shellNavRoutes[2].label}</Text>
                           </View>
-                          <Text style={styles.scanFabLabel}>Scan Image</Text>
-                        </View>
-                      )}
-                    </Pressable>
-                  </View>
+                        )}
+                      </Pressable>
+                    </View>
+                  ) : null}
                 </>
               ) : null}
             </View>
@@ -209,17 +163,6 @@ export function MainShell({ children }: MainShellProps) {
       </View>
     </View>
   );
-}
-
-function normalizeSearchParam(value?: string | string[]) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function getMonthLabel() {
-  const now = new Date();
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  return `Monthly: ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 }
 
 function createStyles(
@@ -238,10 +181,6 @@ function createStyles(
       flex: 1,
       paddingTop: topInset > 0 ? topInset : spacing.md,
       paddingBottom: bottomInset > 0 ? bottomInset : spacing.sm,
-    },
-    scanContainer: {
-      flex: 1,
-      backgroundColor: '#000000',
     },
     animatedShell: {
       position: 'absolute',
@@ -299,7 +238,7 @@ function createStyles(
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.colors.primary,
-      boxShadow: '0 10px 24px rgba(245, 124, 0, 0.38)',
+      boxShadow: '0 6px 16px rgba(0, 0, 0, 0.18)'
     },
     scanFabLabel: {
       ...typography.labelLarge,

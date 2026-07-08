@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useRef, useState } from 'react';
 import type { ScrollView as ScrollViewType, TextInput as TextInputType } from 'react-native';
@@ -21,7 +21,6 @@ import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
 
 import { EmployeeCard, EmployeeCardSkeleton } from './components/employee-card';
-import { EmployeeFormScreen } from './employee-form-screen';
 import type { EmployeeItem } from './employee-data';
 import { employeeMockData } from './employee-data';
 
@@ -29,7 +28,6 @@ const previewItemLimit = 5;
 
 export function EmployeeScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ employeeId?: string | string[]; mode?: string | string[] }>();
   const theme = useAppTheme();
   const styles = createStyles(theme);
   const scrollRef = useRef<ScrollViewType | null>(null);
@@ -37,9 +35,6 @@ export function EmployeeScreen() {
   const [query, setQuery] = useState('');
   const [showFloatingButton, setShowFloatingButton] = useState(true);
   const floatingAnim = useRef(new Animated.Value(1)).current;
-  const rawMode = Array.isArray(params.mode) ? params.mode[0] : params.mode;
-  const employeeId = Array.isArray(params.employeeId) ? params.employeeId[0] : params.employeeId;
-  const screenMode = rawMode === 'create' || rawMode === 'edit' ? rawMode : 'list';
 
   const filteredEmployees = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -80,21 +75,14 @@ export function EmployeeScreen() {
   }
 
   function handleCreateEmployee() {
-    router.push({
-      pathname: '/employee',
-      params: { mode: 'create' },
-    });
+    router.push('/employee/create');
   }
 
   function handleEditEmployee(employee: EmployeeItem) {
     router.push({
-      pathname: '/employee',
-      params: { mode: 'edit', employeeId: employee.id },
+      pathname: '/employee/[employeeId]',
+      params: { employeeId: employee.id },
     });
-  }
-
-  function handleCloseEditor() {
-    router.replace('/employee');
   }
 
   const floatingTranslateY = floatingAnim.interpolate({
@@ -103,16 +91,6 @@ export function EmployeeScreen() {
   });
 
   const showMockFooter = query.trim().length === 0 && visibleEmployees.length > 0;
-
-  if (screenMode === 'create' || screenMode === 'edit') {
-    return (
-      <EmployeeFormScreen
-        employeeId={employeeId}
-        mode={screenMode}
-        onClose={handleCloseEditor}
-      />
-    );
-  }
 
   return (
     <>

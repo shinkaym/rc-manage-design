@@ -1,5 +1,5 @@
 import { ReceiptPreviewScreen } from '@/features/receipts/receipt-preview-screen';
 
-export default function ReceiptPreviewRoute() {
+export default function PreviewScanRoute() {
   return <ReceiptPreviewScreen />;
 }

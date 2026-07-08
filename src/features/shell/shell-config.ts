@@ -34,22 +34,9 @@ export const shellMetrics = {
 export const shellNavRoutes = [
   { label: 'Home', href: '/home' as Href, icon: Home01Icon },
   { label: 'Report', href: '/report' as Href, icon: ReceiptTextIcon },
-  { label: 'Scan Image', href: '/scan' as Href, icon: ScanImageIcon },
+  { label: 'Capture', href: '/scan' as Href, icon: ScanImageIcon },
   { label: 'Employee', href: '/employee' as Href, icon: UserGroupIcon },
   { label: 'Setting', href: '/setting' as Href, icon: Settings02Icon },
-] as const;
-
-export const drawerItems = [
-  { label: 'Home', href: '/home' as Href, icon: Home01Icon },
-  { label: 'Scan Image', href: '/scan' as Href, icon: ScanImageIcon },
-  { label: 'Report', href: '/report' as Href, icon: ReceiptTextIcon },
-  { label: 'Category', href: '/category' as Href, icon: GridViewIcon },
-  { label: 'Employee', href: '/employee' as Href, icon: UserGroupIcon },
-  { label: 'My Account', href: '/account' as Href, icon: UserAccountIcon },
-  { label: 'Setting', href: '/setting' as Href, icon: Settings02Icon },
-  { label: 'Map', href: '/map' as Href, icon: MapsIcon },
-  { label: 'Help', href: '/help' as Href, icon: HelpCircleIcon },
-  { label: 'About Us', href: '/about' as Href, icon: InformationCircleIcon },
 ] as const;
 
 export const shellIcons = {
@@ -59,24 +46,44 @@ export const shellIcons = {
   menu: Menu11Icon,
 } as const;
 
-export const shellTitles: Record<string, string> = {
+export const mainShellTitles: Record<string, string> = {
   '/home': 'Home',
   '/report': 'Report',
   '/category': 'Category',
-  '/scan': 'Scan Image',
   '/employee': 'Employee Portal',
   '/setting': 'Setting',
-  '/account': 'My Account',
-  '/map': 'Map',
-  '/help': 'Help',
-  '/about': 'About Us',
 };
 
 export const shellCenterWidgetRoutes = ['/home', '/report'] as const;
 
-export const shellBackFallbacks: Partial<Record<string, Href>> = {
-  '/account': '/home',
-  '/map': '/home',
-  '/help': '/home',
-  '/about': '/home',
+export const drawerItems = [
+  { label: 'Home', href: '/home' as Href, icon: Home01Icon, navigationMode: 'replace' as const },
+  { label: 'Report', href: '/report' as Href, icon: ReceiptTextIcon, navigationMode: 'replace' as const },
+  { label: 'Category', href: '/category' as Href, icon: GridViewIcon, navigationMode: 'replace' as const },
+  { label: 'Employee', href: '/employee' as Href, icon: UserGroupIcon, navigationMode: 'replace' as const },
+  { label: 'My Account', href: '/setting/my-account' as Href, icon: UserAccountIcon, navigationMode: 'push' as const },
+  { label: 'Setting', href: '/setting' as Href, icon: Settings02Icon, navigationMode: 'replace' as const },
+  { label: 'Map', href: '/setting/map' as Href, icon: MapsIcon, navigationMode: 'push' as const },
+  { label: 'Help', href: '/setting/help' as Href, icon: HelpCircleIcon, navigationMode: 'push' as const },
+  { label: 'About Us', href: '/setting/about-us' as Href, icon: InformationCircleIcon, navigationMode: 'push' as const },
+] as const;
+
+export type DrawerNavigationMode = (typeof drawerItems)[number]['navigationMode'];
+
+export const subShellFallbacks: Partial<Record<string, Href>> = {
+  '/setting/my-account': '/setting',
+  '/setting/map': '/setting',
+  '/setting/help': '/setting',
+  '/setting/about-us': '/setting',
+  '/employee/create': '/employee',
+  '/scan/preview': '/scan',
+};
+
+export const subShellTitles: Record<string, string> = {
+  '/setting/my-account': 'My Account',
+  '/setting/map': 'Map',
+  '/setting/help': 'Help',
+  '/setting/about-us': 'About Us',
+  '/employee/create': 'Create Employee',
+  '/scan/preview': 'Preview Scan',
 };

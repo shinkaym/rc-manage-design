@@ -1,6 +1,6 @@
 import { FeaturePlaceholderScreen } from '@/features/placeholders/feature-placeholder-screen';
 
-export default function AccountRoute() {
+export default function MyAccountRoute() {
   return (
     <FeaturePlaceholderScreen
       title="My Account"

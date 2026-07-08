@@ -23,7 +23,6 @@ import {
 import { CategoryBadge } from '@/features/category/components/category-badge';
 import { CategoryPickerSheet } from '@/features/category/components/category-picker-sheet';
 import { SegmentTabs } from '@/features/report/components/segment-tabs';
-import { MainAppBar } from '@/features/shell/main-app-bar';
 import { radius } from '@/theme/tokens/radius';
 import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
@@ -217,23 +216,19 @@ export function ReceiptPreviewScreen() {
     setIsMerchantCategoryPickerVisible(false);
   }
 
+  function handleCancel() {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace('/scan');
+  }
+
   return (
     <>
       <StatusBar style="dark" />
       <View style={styles.screen}>
-        <View style={styles.appBarFrame}>
-          <MainAppBar
-            title="Review Receipt"
-            leftMode="back"
-            onLeftPress={() => router.back()}
-            rightSlot={
-              <View style={styles.draftBadge}>
-                <Text style={styles.draftBadgeText}>Draft</Text>
-              </View>
-            }
-          />
-        </View>
-
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
@@ -469,7 +464,7 @@ export function ReceiptPreviewScreen() {
         </ScrollView>
 
         <View style={styles.footer}>
-          <Pressable onPress={() => router.back()} style={styles.footerSecondaryPressable}>
+          <Pressable onPress={handleCancel} style={styles.footerSecondaryPressable}>
             {({ pressed }) => (
               <View
                 style={[
@@ -733,10 +728,6 @@ function createStyles(
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    appBarFrame: {
-      paddingTop: topInset > 0 ? topInset : spacing.md,
       backgroundColor: theme.colors.background,
     },
     scrollView: {

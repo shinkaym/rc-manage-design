@@ -1,6 +1,6 @@
 import { FeaturePlaceholderScreen } from '@/features/placeholders/feature-placeholder-screen';
 
-export default function AboutRoute() {
+export default function AboutUsRoute() {
   return (
     <FeaturePlaceholderScreen
       title="About Us"

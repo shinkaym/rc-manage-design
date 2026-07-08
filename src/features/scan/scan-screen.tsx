@@ -1,17 +1,8 @@
 import {
-  ArrowLeft01Icon,
-  CameraRotated01Icon,
-  Cancel01Icon,
-  CropIcon,
   Download01Icon,
-  Edit02Icon,
-  FlashIcon,
-  FlashOffIcon,
-  Image01Icon,
   MailSend02Icon,
   MinusSignIcon,
   PlusSignIcon,
-  Rotate01Icon,
   RotateCcwSquareIcon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react-native';
@@ -37,6 +28,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/hooks/use-app-theme';
+import { ScanAppBar } from '@/features/shell/scan-app-bar';
 import { radius } from '@/theme/tokens/radius';
 import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
@@ -393,7 +385,7 @@ export function ScanScreen() {
   }
 
   function handleSendImage() {
-    router.push('/receipt-preview');
+    router.push('/scan/preview');
   }
 
   return (
@@ -421,7 +413,7 @@ export function ScanScreen() {
 
         <View style={styles.content}>
           {mode !== 'crop' ? (
-            <TopBar
+            <ScanAppBar
               isFlashEnabled={isFlashEnabled}
               isWorking={isWorking}
               mode={mode}
@@ -498,74 +490,6 @@ export function ScanScreen() {
         </View>
       </View>
     </>
-  );
-}
-
-type TopBarProps = {
-  isFlashEnabled: boolean;
-  isWorking: boolean;
-  mode: ScreenMode;
-  onBackToHome: () => void;
-  onClosePreview: () => void;
-  onCrop: () => void;
-  onOpenGallery: () => void;
-  onPlaceholderEdit: () => void;
-  onRotate: () => void;
-  onSwitchCamera: () => void;
-  onToggleFlash: () => void;
-};
-
-function TopBar({
-  isFlashEnabled,
-  isWorking,
-  mode,
-  onBackToHome,
-  onClosePreview,
-  onCrop,
-  onOpenGallery,
-  onPlaceholderEdit,
-  onRotate,
-  onSwitchCamera,
-  onToggleFlash,
-}: TopBarProps) {
-  const theme = useAppTheme();
-  const styles = createStyles(theme, 0, 0);
-
-  return (
-    <View style={styles.topBar}>
-      <FloatingSurfaceButton
-        accent
-        disabled={isWorking}
-        icon={mode === 'capture' ? ArrowLeft01Icon : Cancel01Icon}
-        onPress={mode === 'capture' ? onBackToHome : onClosePreview}
-      />
-
-      {mode === 'capture' ? (
-        <View style={styles.topControlsGroup}>
-          <TopControlButton disabled={isWorking} icon={Image01Icon} onPress={onOpenGallery} />
-          <TopControlButton
-            disabled={isWorking}
-            icon={isFlashEnabled ? FlashIcon : FlashOffIcon}
-            isActive={isFlashEnabled}
-            onPress={onToggleFlash}
-          />
-          <TopControlButton
-            disabled={isWorking}
-            icon={CameraRotated01Icon}
-            onPress={onSwitchCamera}
-          />
-        </View>
-      ) : null}
-
-      {mode === 'preview' ? (
-        <View style={styles.topControlsGroup}>
-          <TopControlButton disabled={isWorking} icon={CropIcon} onPress={onCrop} />
-          <TopControlButton disabled={isWorking} icon={Rotate01Icon} onPress={onRotate} />
-          <TopControlButton disabled={isWorking} icon={Edit02Icon} onPress={onPlaceholderEdit} />
-        </View>
-      ) : null}
-
-    </View>
   );
 }
 
@@ -825,81 +749,6 @@ function CaptureButton({ isBusy, onPress }: CaptureButtonProps) {
               <View style={[styles.captureCore, isBusy ? styles.captureCoreBusy : null]} />
             </View>
           </View>
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-type FloatingSurfaceButtonProps = {
-  accent?: boolean;
-  disabled?: boolean;
-  icon: typeof ArrowLeft01Icon;
-  onPress: () => void;
-};
-
-function FloatingSurfaceButton({
-  accent = false,
-  disabled = false,
-  icon,
-  onPress,
-}: FloatingSurfaceButtonProps) {
-  const theme = useAppTheme();
-  const styles = createStyles(theme, 0, 0);
-
-  return (
-    <Pressable disabled={disabled} onPress={onPress} style={styles.surfaceButtonPressable}>
-      {({ pressed }) => (
-        <View
-          style={[
-            styles.surfaceButton,
-            disabled ? styles.controlDisabled : null,
-            pressed ? styles.controlPressed : null,
-          ]}>
-          <HugeiconsIcon
-            icon={icon}
-            size={22}
-            color={accent ? theme.colors.primary : theme.colors.textSecondary}
-            strokeWidth={2.1}
-          />
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-type TopControlButtonProps = {
-  disabled?: boolean;
-  icon: typeof Image01Icon;
-  isActive?: boolean;
-  onPress: () => void;
-};
-
-function TopControlButton({
-  disabled = false,
-  icon,
-  isActive = false,
-  onPress,
-}: TopControlButtonProps) {
-  const theme = useAppTheme();
-  const styles = createStyles(theme, 0, 0);
-
-  return (
-    <Pressable disabled={disabled} onPress={onPress} style={styles.topControlPressable}>
-      {({ pressed }) => (
-        <View
-          style={[
-            styles.topControlButton,
-            isActive ? styles.topControlButtonActive : null,
-            disabled ? styles.controlDisabled : null,
-            pressed ? styles.controlPressed : null,
-          ]}>
-          <HugeiconsIcon
-            icon={icon}
-            size={22}
-            color={isActive ? theme.colors.primary : '#FFFFFF'}
-            strokeWidth={1.95}
-          />
         </View>
       )}
     </Pressable>

@@ -7,12 +7,12 @@ import { radius } from '@/theme/tokens/radius';
 import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
 
-import { drawerItems, shellIcons } from './shell-config';
+import { drawerItems, type DrawerNavigationMode, shellIcons } from './shell-config';
 
 type AppDrawerPanelProps = {
   currentPathname: string;
   onClose: () => void;
-  onNavigate: (href: Href) => void;
+  onNavigate: (href: Href, navigationMode: DrawerNavigationMode) => void;
   width: number;
 };
 
@@ -51,7 +51,7 @@ export function AppDrawerPanel({
           return (
             <Pressable
               key={item.href}
-              onPress={() => onNavigate(item.href)}
+              onPress={() => onNavigate(item.href, item.navigationMode)}
               style={styles.itemPressable}>
               {({ pressed }) => (
                 <View
