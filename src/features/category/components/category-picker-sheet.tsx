@@ -2,18 +2,18 @@ import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppTheme } from '@/hooks/use-app-theme';
+import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { radius } from '@/theme/tokens/radius';
 import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
 
+import { toSoftColor } from '@/shared/utils/color';
 import {
   categoryIconCatalog,
   customCategorySeed,
   defaultCategorySeed,
   type CategoryItem,
-} from '../category-data';
-import { toSoftColor } from '../category-utils';
+} from '../../../mock/category-data';
 
 type CategoryPickerSheetProps = {
   isVisible: boolean;
@@ -22,18 +22,13 @@ type CategoryPickerSheetProps = {
   selectedCategoryId?: string;
 };
 
-export function CategoryPickerSheet({
-  isVisible,
-  onClose,
-  onSelect,
-  selectedCategoryId,
-}: CategoryPickerSheetProps) {
+export function CategoryPickerSheet({ isVisible, onClose, onSelect, selectedCategoryId }: CategoryPickerSheetProps) {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = createStyles(theme, insets.bottom);
 
   return (
-    <Modal animationType="fade" transparent visible={isVisible} onRequestClose={onClose}>
+    <Modal animationType='fade' transparent visible={isVisible} onRequestClose={onClose}>
       <View style={styles.root}>
         <Pressable style={styles.dismissArea} onPress={onClose}>
           <View style={styles.scrim} />
@@ -43,22 +38,23 @@ export function CategoryPickerSheet({
           <View style={styles.handle} />
 
           <ScrollView
-            contentInsetAdjustmentBehavior="automatic"
+            contentInsetAdjustmentBehavior='automatic'
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.content}>
+            contentContainerStyle={styles.content}
+          >
             <Text style={styles.title}>Choose Category</Text>
 
             <CategoryPickerSection
               items={defaultCategorySeed}
               selectedCategoryId={selectedCategoryId}
-              title="Default List"
+              title='Default List'
               onSelect={onSelect}
             />
 
             <CategoryPickerSection
               items={customCategorySeed}
               selectedCategoryId={selectedCategoryId}
-              title="Custom List"
+              title='Custom List'
               onSelect={onSelect}
             />
           </ScrollView>
@@ -75,12 +71,7 @@ type CategoryPickerSectionProps = {
   title: string;
 };
 
-function CategoryPickerSection({
-  items,
-  onSelect,
-  selectedCategoryId,
-  title,
-}: CategoryPickerSectionProps) {
+function CategoryPickerSection({ items, onSelect, selectedCategoryId, title }: CategoryPickerSectionProps) {
   const styles = createStyles(useAppTheme(), 0);
 
   return (
@@ -114,19 +105,9 @@ function CategoryOptionCard({ category, isSelected, onPress }: CategoryOptionCar
   return (
     <Pressable onPress={onPress} style={styles.cardPressable}>
       {({ pressed }) => (
-        <View
-          style={[
-            styles.card,
-            isSelected ? styles.cardSelected : null,
-            pressed ? styles.cardPressed : null,
-          ]}>
+        <View style={[styles.card, isSelected ? styles.cardSelected : null, pressed ? styles.cardPressed : null]}>
           <View style={[styles.iconBadge, { backgroundColor: toSoftColor(category.colorValue) }]}>
-            <HugeiconsIcon
-              icon={iconPreset.icon}
-              color={category.colorValue}
-              size={18}
-              strokeWidth={2}
-            />
+            <HugeiconsIcon icon={iconPreset.icon} color={category.colorValue} size={18} strokeWidth={2} />
           </View>
 
           <Text numberOfLines={1} style={styles.cardLabel}>

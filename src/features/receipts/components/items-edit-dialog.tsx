@@ -1,32 +1,15 @@
-import {
-  Add01Icon,
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  Cancel01Icon,
-  Delete02Icon,
-} from '@hugeicons/core-free-icons';
+import { Add01Icon, ArrowDown01Icon, ArrowUp01Icon, Cancel01Icon, Delete02Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppTheme } from '@/hooks/use-app-theme';
+import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { radius } from '@/theme/tokens/radius';
 import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
 
-import {
-  formatCurrency,
-  getReceiptItemTotal,
-} from '../receipt-item-utils';
+import { formatCurrency, getReceiptItemTotal } from '../receipt-item-utils';
 import type { ReceiptItemState } from '../receipt-types';
 
 const dialogColumnWidths = {
@@ -54,7 +37,7 @@ type ItemsEditDialogProps = {
   onChangeItem: (
     itemId: string,
     field: keyof Pick<ReceiptItemState, 'name' | 'price' | 'quantity'>,
-    value: string
+    value: string,
   ) => void;
   onClose: () => void;
   onDeleteItem: (itemId: string) => void;
@@ -78,11 +61,7 @@ export function ItemsEditDialog({
   const [isHorizontalHintDismissed, setIsHorizontalHintDismissed] = useState(false);
 
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={isVisible}
-      onRequestClose={onClose}>
+    <Modal transparent animationType='fade' visible={isVisible} onRequestClose={onClose}>
       <View style={styles.dialogBackdrop}>
         <Pressable style={styles.dialogBackdropPressable} onPress={onClose} />
 
@@ -101,16 +80,14 @@ export function ItemsEditDialog({
           <Pressable onPress={onAddItem} style={styles.addItemPressable}>
             {({ pressed }) => (
               <View style={[styles.addItemButton, pressed ? styles.addItemButtonPressed : null]}>
-                <HugeiconsIcon icon={Add01Icon} color="#FFFFFF" size={18} strokeWidth={1.9} />
+                <HugeiconsIcon icon={Add01Icon} color='#FFFFFF' size={18} strokeWidth={1.9} />
                 <Text style={styles.addItemLabel}>Add Item</Text>
               </View>
             )}
           </Pressable>
 
           {!isHorizontalHintDismissed ? (
-            <Pressable
-              onPress={() => setIsHorizontalHintDismissed(true)}
-              style={styles.horizontalHintPressable}>
+            <Pressable onPress={() => setIsHorizontalHintDismissed(true)} style={styles.horizontalHintPressable}>
               {({ pressed }) => (
                 <View style={[styles.horizontalHint, pressed ? styles.horizontalHintPressed : null]}>
                   <Text style={styles.horizontalHintText}>Swipe sideways to see all item columns</Text>
@@ -122,27 +99,29 @@ export function ItemsEditDialog({
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalTableContent}>
+            contentContainerStyle={styles.horizontalTableContent}
+          >
             <View style={styles.tableCanvas}>
               <View style={styles.dialogTableHeader}>
-                <TableHeaderCell label="NAME" width={dialogColumnWidths.name} />
-                <TableHeaderCell centered label="QTY" width={dialogColumnWidths.quantity} />
-                <TableHeaderCell centered label="PRICE" width={dialogColumnWidths.price} />
-                <TableHeaderCell align="right" label="TOTAL" width={dialogColumnWidths.total} />
-                <TableHeaderCell align="center" label="" width={dialogColumnWidths.actions} />
+                <TableHeaderCell label='NAME' width={dialogColumnWidths.name} />
+                <TableHeaderCell centered label='QTY' width={dialogColumnWidths.quantity} />
+                <TableHeaderCell centered label='PRICE' width={dialogColumnWidths.price} />
+                <TableHeaderCell align='right' label='TOTAL' width={dialogColumnWidths.total} />
+                <TableHeaderCell align='center' label='' width={dialogColumnWidths.actions} />
               </View>
 
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 style={styles.dialogRowsScroll}
-                contentContainerStyle={styles.dialogRowsContent}>
+                contentContainerStyle={styles.dialogRowsContent}
+              >
                 {items.map((item, index) => (
                   <View key={item.id} style={styles.dialogItemRow}>
                     <View style={[styles.dialogCell, styles.dialogNameColumn]}>
                       <DialogInput
                         value={item.name}
                         onChangeText={(value) => onChangeItem(item.id, 'name', value)}
-                        placeholder="Item name"
+                        placeholder='Item name'
                       />
                     </View>
 
@@ -150,9 +129,9 @@ export function ItemsEditDialog({
                       <DialogInput
                         value={item.quantity}
                         onChangeText={(value) => onChangeItem(item.id, 'quantity', value)}
-                        placeholder="0"
-                        keyboardType="number-pad"
-                        textAlign="center"
+                        placeholder='0'
+                        keyboardType='number-pad'
+                        textAlign='center'
                       />
                     </View>
 
@@ -160,16 +139,14 @@ export function ItemsEditDialog({
                       <DialogInput
                         value={item.price}
                         onChangeText={(value) => onChangeItem(item.id, 'price', value)}
-                        placeholder="0.00"
-                        keyboardType="decimal-pad"
-                        textAlign="center"
+                        placeholder='0.00'
+                        keyboardType='decimal-pad'
+                        textAlign='center'
                       />
                     </View>
 
                     <View style={[styles.dialogCell, styles.dialogTotalColumn]}>
-                      <Text style={styles.dialogItemTotalText}>
-                        {formatCurrency(getReceiptItemTotal(item))}
-                      </Text>
+                      <Text style={styles.dialogItemTotalText}>{formatCurrency(getReceiptItemTotal(item))}</Text>
                     </View>
 
                     <View style={[styles.dialogCell, styles.dialogActionsColumn]}>
@@ -203,7 +180,8 @@ export function ItemsEditDialog({
                   style={[
                     styles.dialogFooterSecondaryButton,
                     pressed ? styles.dialogFooterSecondaryButtonPressed : null,
-                  ]}>
+                  ]}
+                >
                   <Text style={styles.dialogFooterSecondaryLabel}>Cancel</Text>
                 </View>
               )}
@@ -212,10 +190,8 @@ export function ItemsEditDialog({
             <Pressable onPress={onSave} style={styles.dialogFooterPrimaryPressable}>
               {({ pressed }) => (
                 <View
-                  style={[
-                    styles.dialogFooterPrimaryButton,
-                    pressed ? styles.dialogFooterPrimaryButtonPressed : null,
-                  ]}>
+                  style={[styles.dialogFooterPrimaryButton, pressed ? styles.dialogFooterPrimaryButtonPressed : null]}
+                >
                   <Text style={styles.dialogFooterPrimaryLabel}>Save Items</Text>
                 </View>
               )}
@@ -265,12 +241,7 @@ type TableHeaderCellProps = {
   width: number;
 };
 
-function TableHeaderCell({
-  align = 'left',
-  centered = false,
-  label,
-  width,
-}: TableHeaderCellProps) {
+function TableHeaderCell({ align = 'left', centered = false, label, width }: TableHeaderCellProps) {
   const styles = createStyles(useAppTheme(), 0);
   const textAlign = centered ? 'center' : align;
 
@@ -308,12 +279,7 @@ type IconMiniButtonProps = {
   onPress: () => void;
 };
 
-function IconMiniButton({
-  destructive = false,
-  disabled = false,
-  icon,
-  onPress,
-}: IconMiniButtonProps) {
+function IconMiniButton({ destructive = false, disabled = false, icon, onPress }: IconMiniButtonProps) {
   const theme = useAppTheme();
   const styles = createStyles(theme, 0);
   const color = destructive ? theme.colors.danger : theme.colors.secondary;
@@ -326,13 +292,9 @@ function IconMiniButton({
             styles.iconMiniButton,
             disabled ? styles.iconMiniButtonDisabled : null,
             pressed && !disabled ? styles.iconMiniButtonPressed : null,
-          ]}>
-          <HugeiconsIcon
-            icon={icon}
-            color={disabled ? theme.colors.textHint : color}
-            size={14}
-            strokeWidth={1.9}
-          />
+          ]}
+        >
+          <HugeiconsIcon icon={icon} color={disabled ? theme.colors.textHint : color} size={14} strokeWidth={1.9} />
         </View>
       )}
     </Pressable>

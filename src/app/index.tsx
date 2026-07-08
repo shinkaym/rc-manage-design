@@ -1,4 +1,4 @@
-import { LoginScreen } from '@/features/auth/login-screen';
+import { LoginScreen } from '@/screens/auth/login-screen';
 
 export default function IndexRoute() {
   return <LoginScreen />;

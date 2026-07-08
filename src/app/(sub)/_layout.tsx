@@ -1,14 +1,14 @@
 import { Delete02Icon } from '@hugeicons/core-free-icons';
-import { usePathname, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SubAppBar, SubAppBarActionButton } from '@/features/shell/sub-app-bar';
-import { subShellFallbacks, subShellTitles } from '@/features/shell/shell-config';
-import { useAppTheme } from '@/hooks/use-app-theme';
+import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { SubAppBar, SubAppBarActionButton } from '@/shared/shell/components/sub-app-bar';
+import { subShellFallbacks, subShellTitles } from '@/shared/shell/shell-config';
 import { radius } from '@/theme/tokens/radius';
 import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
@@ -20,12 +20,8 @@ export default function SubLayout() {
   const insets = useSafeAreaInsets();
   const styles = createStyles(theme, insets.top);
   const isEmployeeDetailRoute = /^\/employee\/[^/]+$/.test(pathname);
-  const title = isEmployeeDetailRoute
-    ? 'Employee Detail'
-    : subShellTitles[pathname] ?? 'Detail';
-  const fallbackHref = isEmployeeDetailRoute
-    ? '/employee'
-    : subShellFallbacks[pathname] ?? '/home';
+  const title = isEmployeeDetailRoute ? 'Employee Detail' : (subShellTitles[pathname] ?? 'Detail');
+  const fallbackHref = isEmployeeDetailRoute ? '/employee' : (subShellFallbacks[pathname] ?? '/home');
 
   function handleBackPress() {
     if (router.canGoBack()) {
@@ -38,14 +34,10 @@ export default function SubLayout() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style='dark' />
 
       <View style={styles.headerFrame}>
-        <SubAppBar
-          title={title}
-          onBackPress={handleBackPress}
-          rightSlot={getRightSlot(pathname, router)}
-        />
+        <SubAppBar title={title} onBackPress={handleBackPress} rightSlot={getRightSlot(pathname, router)} />
       </View>
 
       <View style={styles.content}>
@@ -60,8 +52,8 @@ function getRightSlot(pathname: string, router: ReturnType<typeof useRouter>) {
     return (
       <SubAppBarActionButton
         icon={Delete02Icon}
-        color="#FFFFFF"
-        backgroundColor="#C41E1E"
+        color='#FFFFFF'
+        backgroundColor='#C41E1E'
         onPress={() => router.replace('/employee')}
       />
     );

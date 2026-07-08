@@ -1,4 +1,4 @@
-import { CategoryScreen } from '@/features/category/category-screen';
+import { CategoryScreen } from '@/screens/category/category-screen';
 
 export default function CategoryRoute() {
   return <CategoryScreen />;

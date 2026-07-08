@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { EmployeeFormScreen } from '@/features/employee/employee-form-screen';
+import { EmployeeFormScreen } from '@/screens/employee/employee-form-screen';
 
 export default function EmployeeDetailRoute() {
   const params = useLocalSearchParams<{ employeeId?: string | string[] }>();
@@ -16,11 +16,5 @@ export default function EmployeeDetailRoute() {
     router.replace('/employee');
   }
 
-  return (
-    <EmployeeFormScreen
-      employeeId={employeeId}
-      mode="edit"
-      onClose={handleClose}
-    />
-  );
+  return <EmployeeFormScreen employeeId={employeeId} mode='edit' onClose={handleClose} />;
 }

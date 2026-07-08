@@ -1,14 +1,14 @@
-import { Image } from 'expo-image';
 import { PencilEdit02Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react-native';
+import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { useAppTheme } from '@/hooks/use-app-theme';
+import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { radius } from '@/theme/tokens/radius';
 import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
 
-import type { EmployeeItem } from '../employee-data';
+import type { EmployeeItem } from '../../../mock/employee-data';
 
 type EmployeeCardProps = {
   employee: EmployeeItem;
@@ -22,11 +22,7 @@ export function EmployeeCard({ employee, onEdit }: EmployeeCardProps) {
   return (
     <View style={styles.container}>
       <View style={styles.avatarContainer}>
-        <Image
-          source={employee.avatarUrl}
-          style={styles.avatarImage}
-          contentFit="cover"
-        />
+        <Image source={employee.avatarUrl} style={styles.avatarImage} contentFit='cover' />
       </View>
 
       <View style={styles.content}>
@@ -47,18 +43,10 @@ export function EmployeeCard({ employee, onEdit }: EmployeeCardProps) {
         </Text>
       </View>
 
-      <Pressable
-        hitSlop={8}
-        onPress={() => onEdit?.(employee)}
-        style={styles.editPressable}>
+      <Pressable hitSlop={8} onPress={() => onEdit?.(employee)} style={styles.editPressable}>
         {({ pressed }) => (
           <View style={pressed ? styles.editButtonPressed : null}>
-            <HugeiconsIcon
-              icon={PencilEdit02Icon}
-              size={20}
-              color={theme.colors.textSecondary}
-              strokeWidth={2.2}
-            />
+            <HugeiconsIcon icon={PencilEdit02Icon} size={20} color={theme.colors.textSecondary} strokeWidth={2.2} />
           </View>
         )}
       </Pressable>
