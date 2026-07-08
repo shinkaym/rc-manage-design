@@ -16,7 +16,13 @@ import { AppDrawerPanel } from './app-drawer-panel';
 import { MainAppBar } from './main-app-bar';
 import { MainBottomNav } from './main-bottom-nav';
 import { MonthSelectorChip } from './month-selector-chip';
-import { shellMetrics, shellNavRoutes, shellTitles } from './shell-config';
+import {
+  shellBackFallbacks,
+  shellCenterWidgetRoutes,
+  shellMetrics,
+  shellNavRoutes,
+  shellTitles,
+} from './shell-config';
 
 type MainShellProps = {
   children: ReactNode;
@@ -35,9 +41,13 @@ export function MainShell({ children }: MainShellProps) {
   const isScanRoute = pathname.startsWith('/scan');
   const drawerWidth = width * 0.72;
   const mainTitle = shellTitles[pathname] ?? 'Home';
-  const centerChild = pathname.startsWith('/home') || pathname.startsWith('/report')
+  const hasCenterWidget = shellCenterWidgetRoutes.includes(
+    pathname as (typeof shellCenterWidgetRoutes)[number]
+  );
+  const centerChild = hasCenterWidget
     ? <MonthSelectorChip label={getMonthLabel()} onPress={() => {}} />
     : undefined;
+  const isChildShellRoute = pathname in shellBackFallbacks;
 
   useEffect(() => {
     Animated.timing(progress, {
@@ -84,6 +94,21 @@ export function MainShell({ children }: MainShellProps) {
     }
   }
 
+  function handleAppBarLeftPress() {
+    if (!isChildShellRoute) {
+      setIsDrawerOpen((value) => !value);
+      return;
+    }
+
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    const fallbackHref = shellBackFallbacks[pathname] ?? '/home';
+    router.replace(fallbackHref);
+  }
+
   if (isScanRoute) {
     return (
       <View style={styles.scanContainer}>
@@ -122,7 +147,8 @@ export function MainShell({ children }: MainShellProps) {
               <MainAppBar
                 title={centerChild ? undefined : mainTitle}
                 centerChild={centerChild}
-                onMenuPress={() => setIsDrawerOpen((value) => !value)}
+                leftMode={isChildShellRoute ? 'back' : 'menu'}
+                onLeftPress={handleAppBarLeftPress}
               />
 
               <View style={styles.screenContent}>{children}</View>

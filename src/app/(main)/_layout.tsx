@@ -8,6 +8,7 @@ export default function MainLayout() {
       <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
         <Stack.Screen name="home" />
         <Stack.Screen name="report" />
+        <Stack.Screen name="category" />
         <Stack.Screen name="scan" />
         <Stack.Screen name="employee" />
         <Stack.Screen name="setting" />

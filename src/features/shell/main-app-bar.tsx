@@ -9,37 +9,79 @@ import { typography } from '@/theme/tokens/typography';
 
 import { shellIcons } from './shell-config';
 
+type MainAppBarActionButtonProps = {
+  color?: string;
+  disabled?: boolean;
+  icon: typeof shellIcons.menu;
+  onPress: () => void;
+};
+
 type MainAppBarProps = {
   centerChild?: ReactNode;
-  onMenuPress: () => void;
+  leftMode?: 'back' | 'menu';
+  onLeftPress: () => void;
+  rightSlot?: ReactNode;
   title?: string;
 };
 
-export function MainAppBar({ centerChild, onMenuPress, title }: MainAppBarProps) {
+export function MainAppBar({
+  centerChild,
+  leftMode = 'menu',
+  onLeftPress,
+  rightSlot,
+  title,
+}: MainAppBarProps) {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  const leftIcon = leftMode === 'back' ? shellIcons.back : shellIcons.menu;
+
+  return (
+    <View style={styles.container}>
+      <View style={[styles.sideSlot, styles.sideSlotLeft]}>
+        <MainAppBarActionButton icon={leftIcon} onPress={onLeftPress} />
+      </View>
+
+      <View style={styles.centerContent}>
+        {centerChild ?? (title ? <Text style={styles.title}>{title}</Text> : null)}
+      </View>
+
+      <View style={[styles.sideSlot, styles.sideSlotRight]}>
+        {rightSlot}
+      </View>
+    </View>
+  );
+}
+
+export function MainAppBarActionButton({
+  color,
+  disabled = false,
+  icon,
+  onPress,
+}: MainAppBarActionButtonProps) {
   const theme = useAppTheme();
   const styles = createStyles(theme);
 
   return (
-    <View style={styles.container}>
-      <Pressable onPress={onMenuPress} style={styles.menuButtonPressable}>
-        {({ pressed }) => (
-          <View style={[styles.menuButton, pressed ? styles.menuButtonPressed : null]}>
-            <HugeiconsIcon
-              icon={shellIcons.menu}
-              color={theme.colors.primary}
-              size={22}
-              strokeWidth={2.2}
-            />
-          </View>
-        )}
-      </Pressable>
-
-      <View style={styles.centerContent}>
-        {centerChild ?? <Text style={styles.title}>{title}</Text>}
-      </View>
-
-      <View style={styles.trailingSpacer} />
-    </View>
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={styles.iconButtonPressable}>
+      {({ pressed }) => (
+        <View
+          style={[
+            styles.iconButton,
+            disabled ? styles.iconButtonDisabled : null,
+            pressed && !disabled ? styles.iconButtonPressed : null,
+          ]}>
+          <HugeiconsIcon
+            icon={icon}
+            color={color ?? theme.colors.primary}
+            size={22}
+            strokeWidth={2.2}
+          />
+        </View>
+      )}
+    </Pressable>
   );
 }
 
@@ -48,15 +90,27 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
     container: {
       flexDirection: 'row',
       alignItems: 'center',
+      minHeight: 56,
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
       paddingBottom: spacing.sm,
       backgroundColor: theme.colors.background,
     },
-    menuButtonPressable: {
+    sideSlot: {
+      width: 104,
+      minHeight: 44,
+      justifyContent: 'center',
+    },
+    sideSlotLeft: {
+      alignItems: 'flex-start',
+    },
+    sideSlotRight: {
+      alignItems: 'flex-end',
+    },
+    iconButtonPressable: {
       borderRadius: radius.pill,
     },
-    menuButton: {
+    iconButton: {
       width: 44,
       height: 44,
       borderRadius: radius.pill,
@@ -65,22 +119,22 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       backgroundColor: theme.colors.surface,
       boxShadow: `0 4px 8px ${theme.colors.shadow}`,
     },
-    menuButtonPressed: {
+    iconButtonPressed: {
       opacity: 0.9,
+    },
+    iconButtonDisabled: {
+      opacity: 0.5,
     },
     centerContent: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: spacing.xs,
     },
     title: {
       ...typography.headlineMedium,
       color: theme.colors.primary,
       textAlign: 'center',
-    },
-    trailingSpacer: {
-      width: spacing.xxxl,
     },
   });
 }

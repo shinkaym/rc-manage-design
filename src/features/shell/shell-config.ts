@@ -1,8 +1,10 @@
 import type { Href } from 'expo-router';
 
 import {
+  ArrowLeft01Icon,
   Calendar03Icon,
   Cancel01Icon,
+  GridViewIcon,
   HelpCircleIcon,
   Home01Icon,
   InformationCircleIcon,
@@ -41,6 +43,7 @@ export const drawerItems = [
   { label: 'Home', href: '/home' as Href, icon: Home01Icon },
   { label: 'Scan Image', href: '/scan' as Href, icon: ScanImageIcon },
   { label: 'Report', href: '/report' as Href, icon: ReceiptTextIcon },
+  { label: 'Category', href: '/category' as Href, icon: GridViewIcon },
   { label: 'Employee', href: '/employee' as Href, icon: UserGroupIcon },
   { label: 'My Account', href: '/account' as Href, icon: UserAccountIcon },
   { label: 'Setting', href: '/setting' as Href, icon: Settings02Icon },
@@ -50,6 +53,7 @@ export const drawerItems = [
 ] as const;
 
 export const shellIcons = {
+  back: ArrowLeft01Icon,
   calendar: Calendar03Icon,
   close: Cancel01Icon,
   menu: Menu11Icon,
@@ -58,6 +62,7 @@ export const shellIcons = {
 export const shellTitles: Record<string, string> = {
   '/home': 'Home',
   '/report': 'Report',
+  '/category': 'Category',
   '/scan': 'Scan Image',
   '/employee': 'Employee',
   '/setting': 'Setting',
@@ -65,4 +70,13 @@ export const shellTitles: Record<string, string> = {
   '/map': 'Map',
   '/help': 'Help',
   '/about': 'About Us',
+};
+
+export const shellCenterWidgetRoutes = ['/home', '/report'] as const;
+
+export const shellBackFallbacks: Partial<Record<string, Href>> = {
+  '/account': '/home',
+  '/map': '/home',
+  '/help': '/home',
+  '/about': '/home',
 };

@@ -1,5 +1,4 @@
 import {
-  ArrowLeft01Icon,
   Cash01Icon,
   CreditCardIcon,
   Edit02Icon,
@@ -17,6 +16,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/hooks/use-app-theme';
+import { MainAppBar } from '@/features/shell/main-app-bar';
 import { radius } from '@/theme/tokens/radius';
 import { spacing } from '@/theme/tokens/spacing';
 import { typography } from '@/theme/tokens/typography';
@@ -36,7 +36,7 @@ import type { ReceiptItemState } from './receipt-types';
 
 const footerHeight = 116;
 
-type HugeIcon = typeof ArrowLeft01Icon;
+type HugeIcon = typeof Store04Icon;
 type PaymentMethod = 'cash' | 'card';
 type TotalFieldKey = 'discount' | 'tax' | 'tips';
 
@@ -203,23 +203,24 @@ export function ReceiptPreviewScreen() {
     <>
       <StatusBar style="dark" />
       <View style={styles.screen}>
+        <View style={styles.appBarFrame}>
+          <MainAppBar
+            title="Review Receipt"
+            leftMode="back"
+            onLeftPress={() => router.back()}
+            rightSlot={
+              <View style={styles.draftBadge}>
+                <Text style={styles.draftBadgeText}>Draft</Text>
+              </View>
+            }
+          />
+        </View>
+
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}>
-          <View style={styles.headerCard}>
-            <HeaderIconButton icon={ArrowLeft01Icon} onPress={() => router.back()} />
-
-            <View style={styles.headerTitleBlock}>
-              <Text style={styles.headerTitle}>Review Receipt</Text>
-            </View>
-
-            <View style={styles.draftBadge}>
-              <Text style={styles.draftBadgeText}>Draft</Text>
-            </View>
-          </View>
-
           <SectionCard>
             <View style={styles.merchantGlow} />
             <SectionHeader
@@ -490,26 +491,6 @@ export function ReceiptPreviewScreen() {
   );
 }
 
-type HeaderIconButtonProps = {
-  icon: HugeIcon;
-  onPress: () => void;
-};
-
-function HeaderIconButton({ icon, onPress }: HeaderIconButtonProps) {
-  const theme = useAppTheme();
-  const styles = createStyles(theme, 0, 0);
-
-  return (
-    <Pressable onPress={onPress} style={styles.headerIconPressable}>
-      {({ pressed }) => (
-        <View style={[styles.headerIconButton, pressed ? styles.headerIconButtonPressed : null]}>
-          <HugeiconsIcon icon={icon} color={theme.colors.primary} size={22} strokeWidth={2.1} />
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
 type SectionCardProps = {
   children: ReactNode;
 };
@@ -777,52 +758,20 @@ function createStyles(
       flex: 1,
       backgroundColor: theme.colors.background,
     },
+    appBarFrame: {
+      paddingTop: topInset > 0 ? topInset : spacing.md,
+      backgroundColor: theme.colors.background,
+    },
     scrollView: {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
     scrollContent: {
-      paddingTop: topInset > 0 ? spacing.sm : spacing.xl,
+      paddingTop: spacing.sm,
       paddingRight: spacing.lg,
       paddingBottom: footerHeight + bottomInset + spacing.xl,
       paddingLeft: spacing.lg,
       gap: spacing.md,
-    },
-    headerCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.md,
-      borderRadius: radius.xxxl,
-      borderCurve: 'continuous',
-      backgroundColor: '#FFFDF9',
-      boxShadow: '0 12px 28px rgba(17, 24, 39, 0.10)',
-    },
-    headerIconPressable: {
-      borderRadius: radius.pill,
-    },
-    headerIconButton: {
-      width: 44,
-      height: 44,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: radius.pill,
-      backgroundColor: theme.colors.surface,
-      boxShadow: `0 4px 8px ${theme.colors.shadow}`,
-    },
-    headerIconButtonPressed: {
-      opacity: 0.9,
-    },
-    headerTitleBlock: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: spacing.sm,
-    },
-    headerTitle: {
-      ...typography.headlineMedium,
-      color: theme.colors.primary,
-      textAlign: 'center',
     },
     draftBadge: {
       minWidth: 56,
