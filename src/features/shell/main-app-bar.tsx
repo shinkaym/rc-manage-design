@@ -100,7 +100,8 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       backgroundColor: theme.colors.background,
     },
     sideSlot: {
-      width: 104,
+      minWidth: 44,
+      maxWidth: 104,
       minHeight: 44,
       justifyContent: 'center',
     },
@@ -130,6 +131,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     centerContent: {
       flex: 1,
+      minWidth: 0,
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: spacing.xs,

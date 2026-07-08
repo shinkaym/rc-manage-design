@@ -27,7 +27,9 @@ export function MonthSelectorChip({ label, onPress }: MonthSelectorChipProps) {
             color={theme.colors.textSecondary}
             strokeWidth={1.8}
           />
-          <Text style={styles.label}>{label}</Text>
+          <Text numberOfLines={1} style={styles.label}>
+            {label}
+          </Text>
         </View>
       )}
     </Pressable>
@@ -38,19 +40,22 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
   return StyleSheet.create({
     pressable: {
       borderRadius: radius.sm,
+      maxWidth: '100%',
     },
     container: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
+      paddingVertical: 6,
       borderRadius: radius.sm,
       borderCurve: 'continuous',
       backgroundColor: theme.colors.surface,
       borderWidth: 1,
       borderColor: theme.colors.borderAlt,
-      boxShadow: `0 4px 12px ${theme.colors.shadow}`,
+      boxShadow: `0 2px 6px ${theme.colors.shadow}`,
       gap: spacing.xs,
+      maxWidth: '100%',
+      minWidth: 0,
     },
     containerPressed: {
       opacity: 0.9,
@@ -59,6 +64,8 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       ...typography.bodyMedium,
       fontFamily: typography.titleMedium.fontFamily,
       color: theme.colors.textSecondary,
+      flexShrink: 1,
+      minWidth: 0,
     },
   });
 }
